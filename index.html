@@ -7,6 +7,38 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module">
+// Lazy-load Whisper only when the user actually requests captions
+window.__whisperPipeline = null;
+window.__whisperLoading = false;
+window.loadWhisper = async function(onProgress) {
+  if (window.__whisperPipeline) return window.__whisperPipeline;
+  if (window.__whisperLoading) {
+    // Wait for existing load to finish
+    while (window.__whisperLoading) await new Promise(r => setTimeout(r, 200));
+    return window.__whisperPipeline;
+  }
+  window.__whisperLoading = true;
+  try {
+    const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/+esm');
+    // Allow remote models
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+    const pipe = await pipeline(
+      'automatic-speech-recognition',
+      'Xenova/whisper-tiny.en',
+      {
+        progress_callback: onProgress,
+        quantized: true  // smaller download
+      }
+    );
+    window.__whisperPipeline = pipe;
+    return pipe;
+  } finally {
+    window.__whisperLoading = false;
+  }
+};
+</script>
 <style>
   :root {
     --paper: #f5f0e6;
@@ -674,6 +706,361 @@
     justify-content: space-between;
   }
   .vod-tile .tile-meta .views { color: var(--accent-dark); }
+
+  /* STREAM STATS PANELS */
+  .stats-panels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 900px) { .stats-panels-grid { grid-template-columns: 1fr; } }
+
+  .panel-heading {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--ink-dim);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* EVENT FEED */
+  .event-list {
+    list-style: none;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .event-row {
+    display: grid;
+    grid-template-columns: 68px auto 1fr;
+    gap: 12px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .event-row:last-child { border-bottom: none; }
+  .event-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    font-weight: 500;
+  }
+  .event-type {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 3px 7px;
+    font-weight: 600;
+  }
+  .event-type.sub { background: var(--highlight); color: var(--accent-dark); }
+  .event-type.bits { background: #ddeef7; color: #1e40af; }
+  .event-type.gift { background: #e9f5db; color: var(--success); }
+  .event-type.raid { background: #ffebc6; color: var(--warning); }
+  .event-body {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .event-body strong { color: var(--accent-dark); }
+
+  /* EMOTE LEADERBOARD */
+  .emote-list {
+    list-style: none;
+  }
+  .emote-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 80px;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .emote-row:last-child { border-bottom: none; }
+  .emote-rank {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+  }
+  .emote-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .emote-bar-wrap {
+    background: var(--paper-2);
+    height: 8px;
+    position: relative;
+  }
+  .emote-bar {
+    background: var(--accent);
+    height: 100%;
+    transition: width 0.3s;
+  }
+  .emote-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    font-weight: 500;
+    text-align: right;
+  }
+
+  /* IN-BROWSER PREVIEW */
+  .clip-preview-wrapper {
+    background: var(--ink);
+    border: 1px solid var(--rule);
+    margin: 14px 0;
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    display: none;
+  }
+  .clip-preview-wrapper.open { display: block; }
+  .clip-preview-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* CAPTIONS */
+  .captions-panel {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 14px 16px;
+    margin: 14px 0 0;
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.6;
+    display: none;
+  }
+  .captions-panel.open { display: block; }
+  .captions-panel.loading { color: var(--ink-dim); font-style: italic; }
+  .captions-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .captions-head button { font-size: 9px; padding: 5px 10px; }
+  .captions-text {
+    white-space: pre-wrap;
+    color: var(--ink);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .whisper-loading-bar {
+    height: 2px;
+    background: var(--paper);
+    position: relative;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .whisper-loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: -40%;
+    width: 40%;
+    background: var(--accent);
+    animation: indeterminate 1.4s infinite ease-in-out;
+  }
+  @keyframes indeterminate {
+    0% { left: -40%; }
+    100% { left: 100%; }
+  }
+
+  .clip-preview-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 8px 0;
+  }
+
+  /* CLIP EDITOR */
+  .clip-editor {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 16px 18px;
+    margin: 14px 0 0;
+    display: none;
+  }
+  .clip-editor.open { display: block; }
+  .clip-editor h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* TIMELINE SCRUBBER */
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 70px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .timeline-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .timeline-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 600;
+    text-align: center;
+  }
+  .timeline-track {
+    position: relative;
+    height: 36px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    cursor: crosshair;
+    user-select: none;
+  }
+  .timeline-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: var(--accent);
+    opacity: 0.25;
+    pointer-events: none;
+  }
+  .timeline-handle {
+    position: absolute;
+    top: -4px; bottom: -4px;
+    width: 10px;
+    background: var(--ink);
+    cursor: ew-resize;
+    border-radius: 2px;
+    touch-action: none;
+  }
+  .timeline-handle::before {
+    content: '';
+    position: absolute;
+    left: 3px; right: 3px;
+    top: 50%; transform: translateY(-50%);
+    width: 4px; height: 14px;
+    background: var(--paper);
+    border-radius: 1px;
+  }
+  .timeline-handle.start { margin-left: -5px; }
+  .timeline-handle.end { margin-left: -5px; }
+  .timeline-tick {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: var(--ink-faint);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .timeline-hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  /* CAPTION EDITOR */
+  .caption-editor-textarea {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 10px 12px;
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.6;
+    min-height: 110px;
+    resize: vertical;
+    outline: none;
+  }
+  .caption-editor-textarea:focus { border-color: var(--accent); }
+
+  /* CONFIRM + HANDOFF */
+  .handoff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  @media (max-width: 700px) { .handoff-grid { grid-template-columns: 1fr; } }
+  .handoff-tile {
+    background: var(--paper);
+    border: 1.5px solid var(--rule);
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .handoff-tile:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .handoff-tile .tile-platform {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-dark);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .handoff-tile .tile-desc {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.4;
+  }
+
+  .clip-confirmed-banner {
+    background: #f0f7e8;
+    border-left: 4px solid var(--success);
+    padding: 14px 18px;
+    margin-top: 14px;
+    display: none;
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .clip-confirmed-banner.open { display: block; }
+  .clip-confirmed-banner strong { color: var(--success); }
+  .clip-confirmed-banner code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--paper);
+    padding: 1px 6px;
+    border: 1px solid var(--rule);
+    word-break: break-all;
+  }
 </style>
 </head>
 <body>
@@ -813,9 +1200,9 @@
             <div class="stat-sub">post-stream</div>
           </div>
           <div class="stat">
-            <div class="stat-label">Chat Msgs</div>
-            <div class="stat-value" id="vod-chats">—</div>
-            <div class="stat-sub">total</div>
+            <div class="stat-label">Unique Chatters</div>
+            <div class="stat-value" id="vod-unique">—</div>
+            <div class="stat-sub">distinct names</div>
           </div>
           <div class="stat">
             <div class="stat-label">Msgs / Min</div>
@@ -827,11 +1214,34 @@
     </div>
   </section>
 
+  <!-- ================ SECTION 2b: STREAM STATS ================ -->
+  <section id="stats-section" style="display: none;">
+    <div class="section-head">
+      <h2>The Numbers</h2>
+      <span class="kicker">§ 03 · Stream Stats</span>
+    </div>
+
+    <div class="stats-panels-grid">
+      <div>
+        <div class="panel-heading">Event Feed <span style="float: right; color: var(--ink-faint);" id="event-count">—</span></div>
+        <ul class="event-list" id="event-list">
+          <li class="empty-state" style="padding: 30px 10px;">Analyzing events…</li>
+        </ul>
+      </div>
+      <div>
+        <div class="panel-heading">Top Emotes <span style="float: right; color: var(--ink-faint);" id="emote-total-count">—</span></div>
+        <ul class="emote-list" id="emote-list">
+          <li class="empty-state" style="padding: 30px 10px;">Counting emotes…</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- ================ SECTION 3: FEEDBACK ================ -->
   <section id="feedback-section" style="display: none;">
     <div class="section-head">
       <h2>The Verdict</h2>
-      <span class="kicker">§ 03 · Performance Feedback</span>
+      <span class="kicker">§ 04 · Performance Feedback</span>
     </div>
     <p class="feedback-intro" id="feedback-intro">Awaiting analysis…</p>
     <div class="chart-wrap">
@@ -845,7 +1255,7 @@
   <section id="audio-section" style="display: none;">
     <div class="section-head">
       <h2>The Ear Test</h2>
-      <span class="kicker">§ 04 · Audio Echo & Doubling</span>
+      <span class="kicker">§ 05 · Audio Echo & Doubling</span>
     </div>
     <div id="audio-results">
       <div class="empty-state">Audio probe pending…</div>
@@ -863,7 +1273,7 @@
   <section id="clips-section" style="display: none;">
     <div class="section-head">
       <h2>The Cuts</h2>
-      <span class="kicker">§ 05 · Clip-Worthy Moments</span>
+      <span class="kicker">§ 06 · Clip-Worthy Moments</span>
     </div>
     <p class="feedback-intro" id="clips-intro">Scoring moments by chat spike intensity, hype keyword density, and emote clusters. Top-ranked moments are listed below.</p>
     <div id="clips-list"><div class="empty-state">Clip analysis pending…</div></div>
@@ -1222,10 +1632,26 @@ async function fetchAllChat(vodId, duration) {
     (res.edges || []).forEach(ed => {
       const n = ed.node;
       if (!n) return;
+      // Capture text and emote IDs from fragments
+      const fragments = n.message?.fragments || [];
+      const text = fragments.map(f => f.text || '').join('');
+      const emotes = fragments.filter(f => f.emote).map(f => ({
+        id: f.emote.emoteID,
+        name: f.text || '?'
+      }));
+      // Badges indicate subs, mods, vips, etc.
+      const badges = (n.message?.userBadges || []).map(b => ({ setID: b.setID, version: b.version }));
+      // Detect system/event messages (subs, bits, raids) by inspecting badges + message patterns
+      const badgeSet = badges.map(b => b.setID);
       comments.push({
         t: n.contentOffsetSeconds,
         user: n.commenter?.displayName || 'anon',
-        msg: (n.message?.fragments || []).map(f => f.text || f.emote?.emoteID || '').join('')
+        msg: text,
+        emotes: emotes,
+        badges: badgeSet,
+        isSubscriber: badgeSet.includes('subscriber'),
+        isMod: badgeSet.includes('moderator'),
+        isVIP: badgeSet.includes('vip'),
       });
     });
     if (!res.pageInfo?.hasNextPage) break;
@@ -1269,13 +1695,185 @@ function drawChart(comments, duration) {
 }
 
 // ===============================================
+// Analysis: events, emotes, unique chatters
+// ===============================================
+// Heuristic parsing of system messages in chat replay.
+// Twitch's GQL chat comments endpoint returns system events (subs, resubs, raids, gift subs)
+// as regular comments from the USER who performed the action, with specific badges or
+// special message patterns. We detect them via pattern matching on the text + badges.
+function parseEvents(comments) {
+  const events = { subs: [], resubs: [], giftSubs: [], bits: [], raids: [], hosts: [] };
+  comments.forEach(c => {
+    const msg = c.msg || '';
+    // Bit cheers — messages often contain "cheer100", "bits200" inline with Twitch's cheermote system
+    const bitsMatch = msg.match(/\b(?:cheer|bits?|anon|streamlabs|uni|muxy|pride|showlove|party|seemsgood|good|biblethump|cool|scoops|hfg)(\d{1,6})\b/gi);
+    if (bitsMatch) {
+      const total = bitsMatch.reduce((sum, m) => sum + parseInt(m.match(/\d+/)[0], 10), 0);
+      if (total > 0) events.bits.push({ t: c.t, user: c.user, amount: total });
+    }
+    // Subscribed, resubbed patterns (these appear as messages from the subscribed user)
+    if (/\b(just subscribed|subscribed with|is now a subscriber|subscribed at tier)\b/i.test(msg)) {
+      events.subs.push({ t: c.t, user: c.user, msg: msg.slice(0, 160) });
+    }
+    if (/\b(subscribed for \d+ months|months streak|resubscribed)\b/i.test(msg)) {
+      events.resubs.push({ t: c.t, user: c.user, msg: msg.slice(0, 160) });
+    }
+    if (/\b(gifted .+ subs?|is gifting|gift sub)\b/i.test(msg)) {
+      const gcount = (msg.match(/\bgifted (\d+)/i) || [])[1] || 1;
+      events.giftSubs.push({ t: c.t, user: c.user, count: +gcount });
+    }
+    if (/\braid(ed|ing)\b.{0,40}\bviewer/i.test(msg)) {
+      const rcount = (msg.match(/(\d+)\s*viewer/i) || [])[1] || 0;
+      events.raids.push({ t: c.t, user: c.user, viewers: +rcount });
+    }
+  });
+  return events;
+}
+
+function topEmotes(comments, limit = 12) {
+  const counts = new Map();
+  comments.forEach(c => {
+    (c.emotes || []).forEach(e => {
+      const key = e.name || e.id;
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+  });
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name, count]) => ({ name, count }));
+}
+
+function uniqueChatters(comments) {
+  return new Set(comments.map(c => c.user)).size;
+}
+
+function subscriberRatio(comments) {
+  const byUser = new Map();
+  comments.forEach(c => {
+    if (!byUser.has(c.user)) byUser.set(c.user, c.isSubscriber);
+  });
+  const total = byUser.size;
+  const subs = [...byUser.values()].filter(Boolean).length;
+  return { total, subs, ratio: total ? subs / total : 0 };
+}
+
+// Render event feed (subs, bits, gifts, raids)
+function renderEvents(events) {
+  const all = [
+    ...events.subs.map(e => ({ ...e, type: 'sub', label: 'SUB' })),
+    ...events.resubs.map(e => ({ ...e, type: 'sub', label: 'RESUB' })),
+    ...events.giftSubs.map(e => ({ ...e, type: 'gift', label: `GIFT ×${e.count}` })),
+    ...events.bits.map(e => ({ ...e, type: 'bits', label: `${e.amount} BITS` })),
+    ...events.raids.map(e => ({ ...e, type: 'raid', label: `RAID ${e.viewers||''}` })),
+  ];
+  all.sort((a, b) => a.t - b.t);
+  const countText = `${all.length} total`;
+  $('#event-count').textContent = countText;
+  const list = $('#event-list');
+  if (!all.length) {
+    list.innerHTML = '<li class="empty-state" style="padding: 24px 10px; font-size: 13px;">No sub/bit/raid events detected in chat replay. Twitch hides most system events from the VOD — expect this to be sparse.</li>';
+    return;
+  }
+  list.innerHTML = all.map(e => {
+    const typeClass = e.type;
+    const bodyText = e.type === 'bits'
+      ? `<strong>${escapeHTML(e.user)}</strong> cheered ${e.amount} bits`
+      : e.type === 'gift'
+      ? `<strong>${escapeHTML(e.user)}</strong> gifted ${e.count} sub${e.count>1?'s':''}`
+      : e.type === 'raid'
+      ? `<strong>${escapeHTML(e.user)}</strong> raided${e.viewers?' with '+e.viewers+' viewers':''}`
+      : `<strong>${escapeHTML(e.user)}</strong> ${e.label === 'RESUB' ? 'resubscribed' : 'subscribed'}`;
+    return `
+      <li class="event-row">
+        <span class="event-time">${fmtDur(e.t)}</span>
+        <span class="event-type ${typeClass}">${e.label}</span>
+        <span class="event-body">${bodyText}</span>
+      </li>
+    `;
+  }).join('');
+}
+
+// Render top emotes leaderboard
+function renderEmotes(emotes) {
+  $('#emote-total-count').textContent = emotes.length ? `top ${emotes.length}` : '—';
+  const list = $('#emote-list');
+  if (!emotes.length) {
+    list.innerHTML = '<li class="empty-state" style="padding: 24px 10px; font-size: 13px;">No emotes detected in chat.</li>';
+    return;
+  }
+  const max = emotes[0].count;
+  list.innerHTML = emotes.map((e, i) => `
+    <li class="emote-row">
+      <span class="emote-rank">${i+1}</span>
+      <div>
+        <div class="emote-name">${escapeHTML(e.name)}</div>
+        <div class="emote-bar-wrap"><div class="emote-bar" style="width: ${(e.count/max*100).toFixed(1)}%"></div></div>
+      </div>
+      <span class="emote-count">${nFmt(e.count)}</span>
+    </li>
+  `).join('');
+}
+
+// ===============================================
+// Audio-triggered moment detection
+// ===============================================
+// Extract short-window RMS energy from decoded audio segments, find peaks 2+σ above baseline
+function detectAudioMoments(audioResults, decodedSegments) {
+  // decodedSegments: array of { offset, buffer (AudioBuffer) }
+  if (!decodedSegments || !decodedSegments.length) return [];
+  const moments = [];
+  decodedSegments.forEach(({ offset, buffer }) => {
+    const ch = buffer.getChannelData(0);
+    const sr = buffer.sampleRate;
+    const windowSec = 1.0;
+    const windowSize = Math.floor(sr * windowSec);
+    const hop = Math.floor(windowSize / 2);
+    const energies = [];
+    for (let i = 0; i + windowSize <= ch.length; i += hop) {
+      let sum = 0;
+      for (let j = 0; j < windowSize; j++) sum += ch[i + j] * ch[i + j];
+      const rms = Math.sqrt(sum / windowSize);
+      energies.push({ tOffset: i / sr, rms });
+    }
+    if (energies.length < 4) return;
+    const mean = energies.reduce((a, b) => a + b.rms, 0) / energies.length;
+    const sd = Math.sqrt(energies.reduce((a, b) => a + (b.rms - mean) ** 2, 0) / energies.length);
+    if (sd < 1e-5) return;
+    // Find peaks > 2σ above mean AND above absolute threshold
+    energies.forEach(e => {
+      const z = (e.rms - mean) / sd;
+      if (z >= 2.0 && e.rms > 0.05) {
+        moments.push({
+          absoluteTime: offset + e.tOffset,
+          rms: e.rms,
+          zScore: z
+        });
+      }
+    });
+  });
+  // Dedupe nearby moments (within 2s)
+  moments.sort((a, b) => a.absoluteTime - b.absoluteTime);
+  const deduped = [];
+  moments.forEach(m => {
+    if (!deduped.length || m.absoluteTime - deduped[deduped.length - 1].absoluteTime > 3) {
+      deduped.push(m);
+    } else if (m.zScore > deduped[deduped.length - 1].zScore) {
+      deduped[deduped.length - 1] = m;
+    }
+  });
+  return deduped;
+}
+
+// ===============================================
 // Clip scoring
 // ===============================================
 const HYPE_KEYWORDS = /\b(pog|poggers|lol|lmao|lmfao|rofl|omg|wtf|holy|insane|clutch|nice|gg|wp|hype|W|cracked|clean|nuts|no way|let'?s go|lets go|goated|goat|sick|sheesh|based|actual|literally|bro|wait what)\b/i;
 const LAUGH_EMOJIS = /[😂🤣😭💀]|KEKW|LULW|OMEGALUL|PepeLaugh|LUL|KEK/g;
 const HYPE_EMOTES = /PogChamp|Pog|POGGERS|WAYTOODANK|PepegaCredit|EZ|EZY|W\s*$|Clap|PogU/g;
 
-function scoreClips(comments, duration) {
+function scoreClips(comments, duration, audioMoments) {
   if (!comments.length) return [];
   const windowSec = 30;
   const hopSec = 10;
@@ -1321,10 +1919,18 @@ function scoreClips(comments, duration) {
     // Unique commenters (broad reaction > same user spamming)
     const uniqueUsers = new Set(winMsgs.map(m => m.user)).size;
 
-    // Composite score (blended: chat spike + excitement)
+    // Audio moments overlapping this window
+    const windowAudioMoments = (audioMoments || []).filter(
+      m => m.absoluteTime >= start && m.absoluteTime < end
+    );
+    const audioBoost = windowAudioMoments.length > 0
+      ? Math.min(3.0, windowAudioMoments.reduce((sum, m) => sum + m.zScore, 0) * 0.4)
+      : 0;
+
+    // Composite score (blended: chat spike + excitement + audio)
     const velocityScore = Math.max(0, z) * 1.0;
     const excitementScore = (laughs * 0.35 + hype * 0.45 + hypeEmotes * 0.4 + uniqueUsers * 0.15) / windowSec;
-    const score = velocityScore + excitementScore * 2.5;
+    const score = velocityScore + excitementScore * 2.5 + audioBoost;
 
     windows.push({
       start, end,
@@ -1333,7 +1939,9 @@ function scoreClips(comments, duration) {
       laughs, hype, hypeEmotes,
       unique: uniqueUsers,
       msgCount: winMsgs.length,
-      sample: winMsgs.slice(0, 12)
+      sample: winMsgs.slice(0, 12),
+      audioMoments: windowAudioMoments,
+      audioBoost
     });
   }
 
@@ -1352,6 +1960,7 @@ function scoreClips(comments, duration) {
 // Reasoning text
 function clipReason(c) {
   const parts = [];
+  if (c.audioBoost > 0.5) parts.push(`<strong>audio spike</strong> (${c.audioMoments.length} peak${c.audioMoments.length>1?'s':''})`);
   if (c.z > 2) parts.push(`chat velocity spiked <strong>${c.z.toFixed(1)}σ</strong> above baseline`);
   else if (c.z > 1) parts.push(`chat activity up <strong>${c.z.toFixed(1)}σ</strong>`);
   if (c.laughs > 5) parts.push(`${c.laughs} laugh reactions`);
@@ -1507,6 +2116,7 @@ async function analyzeAudio(vodId, duration) {
 
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const results = [];
+  const decodedBuffers = [];
   let decoded = 0, decodeFails = 0;
 
   for (let si = 0; si < sampled.length; si++) {
@@ -1523,17 +2133,19 @@ async function analyzeAudio(vodId, duration) {
       const ch = buf.getChannelData(0);
       const r = detectEcho(ch, buf.sampleRate);
       results.push({ offset, ...r });
+      decodedBuffers.push({ offset, buffer: buf });
     } catch (e) {
       decodeFails++;
     }
   }
-  ctx.close();
+  // Note: ctx left open; closed by caller after moment detection
 
   if (decoded === 0) {
+    ctx.close();
     return { blocked: true, reason: 'All audio segments failed to decode. Your browser may not support the TS/AAC format used. Chrome has the best compatibility.' };
   }
 
-  return { blocked: false, results, decoded, decodeFails };
+  return { blocked: false, results, decoded, decodeFails, decodedBuffers, audioContext: ctx };
 }
 
 // ===============================================
@@ -1590,13 +2202,23 @@ function generateFeedback(meta, comments, clips, audio) {
 // ===============================================
 // Render clips + captions
 // ===============================================
-function renderClips(clips, vodId, channelName) {
+function renderClips(clips, vodId, channelName, vodDuration) {
   if (!clips.length) { $('#clips-list').innerHTML = '<div class="empty-state">No clip-worthy moments surfaced. Try a stream with more chat activity.</div>'; return; }
+  const parentDomain = window.location.hostname || 'localhost';
+
+  // Store clip state per index so the editor can mutate start/end/captions
+  window.__clipState = new Map();
+
   $('#clips-list').innerHTML = clips.map((c, i) => {
-    const t = Math.floor(c.start);
-    const vodLink = `https://www.twitch.tv/videos/${vodId}?t=${Math.floor(t/3600)}h${Math.floor(t%3600/60)}m${t%60}s`;
-    // Twitch's clip editor opens at: /<channel>/clip with time=<seconds>
-    const clipLink = channelName ? `https://clips.twitch.tv/create?channel=${encodeURIComponent(channelName)}&videoID=${vodId}&offset=${t}` : vodLink;
+    const start = Math.floor(c.start);
+    const end = Math.ceil(c.end);
+    window.__clipState.set(i, {
+      start, end,
+      captionsText: '',
+      vodId,
+      channelName,
+      vodDuration
+    });
     const sampleHTML = c.sample.map(m => `<div><span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML(m.msg).slice(0,120)}</div>`).join('');
     return `
       <div class="clip-item" data-idx="${i}">
@@ -1612,28 +2234,146 @@ function renderClips(clips, vodId, channelName) {
           </div>
         </div>
         <div class="clip-chat-sample">${sampleHTML || '<em>No sample</em>'}</div>
+
         <div class="clip-actions">
-          <a href="${vodLink}" target="_blank"><button class="ghost small">Open VOD at timestamp</button></a>
-          <a href="${clipLink}" target="_blank"><button class="ghost small">Create Twitch Clip</button></a>
-          <button class="ghost small" data-caption="tiktok" data-idx="${i}">TikTok Caption</button>
-          <button class="ghost small" data-caption="instagram" data-idx="${i}">Instagram Caption</button>
-          <button class="ghost small" data-caption="youtube" data-idx="${i}">YouTube Shorts Caption</button>
+          <button class="primary" style="padding: 9px 16px;" data-open-editor="${i}">Open in Editor ▸</button>
+          <button class="ghost small" data-caption-gen="tiktok" data-idx="${i}">TikTok post text</button>
+          <button class="ghost small" data-caption-gen="instagram" data-idx="${i}">Instagram post text</button>
+          <button class="ghost small" data-caption-gen="youtube" data-idx="${i}">YT Shorts post text</button>
         </div>
+
+        <div class="clip-editor" id="editor-${i}">
+          <h4>Preview &amp; trim</h4>
+          <div class="clip-preview-wrapper open" id="preview-${i}">
+            <iframe
+              title="VOD preview at ${fmtDur(start)}"
+              allowfullscreen="true"
+              scrolling="no"
+              data-clip-idx="${i}"
+              src="">
+            </iframe>
+          </div>
+
+          <div class="timeline-row">
+            <span class="timeline-label">Start</span>
+            <div class="timeline-track" data-timeline="${i}">
+              <div class="timeline-fill"></div>
+              <div class="timeline-handle start" data-handle="start"></div>
+              <div class="timeline-handle end" data-handle="end"></div>
+            </div>
+            <span class="timeline-value" id="end-value-${i}">${fmtDur(end)}</span>
+          </div>
+          <div class="timeline-row">
+            <span class="timeline-value" id="start-value-${i}">${fmtDur(start)}</span>
+            <div class="timeline-hint">Drag handles to adjust · duration shown mid-track · Twitch clips are capped at 60s</div>
+            <span class="timeline-value" id="dur-value-${i}">${end - start}s</span>
+          </div>
+
+          <h4 style="margin-top: 20px;">Auto-captions (Whisper, local)</h4>
+          <div id="captions-${i}" class="captions-panel">
+            <div class="captions-head"><span>Captions not generated yet</span></div>
+            <div class="captions-text" style="color: var(--ink-faint); font-style: italic;">Click Generate below to transcribe this window. First use downloads a ~40MB model — subsequent clips are fast.</div>
+          </div>
+          <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="ghost small" data-gen-captions="${i}">Generate captions</button>
+            <button class="ghost small" data-edit-captions="${i}" style="display:none;">Edit captions</button>
+          </div>
+          <textarea class="caption-editor-textarea" id="caption-edit-${i}" style="display:none; margin-top: 10px;" placeholder="Captions will appear here after generation. You can edit them freely before exporting."></textarea>
+
+          <h4 style="margin-top: 22px;">Confirm &amp; produce clip</h4>
+          <div style="font-family: var(--serif); font-size: 14px; color: var(--ink-2); margin-bottom: 10px; line-height: 1.5;">
+            When you're happy with the trim and captions, create the horizontal Twitch clip. Then use the handoff tiles to send it to a vertical editor (CapCut, Kapwing, or Opus Clip) for TikTok/Reels/Shorts.
+          </div>
+          <button class="primary" data-confirm-clip="${i}">Create Twitch Clip (horizontal)</button>
+
+          <div class="clip-confirmed-banner" id="confirmed-${i}"></div>
+        </div>
+
         <div class="caption-box" id="caption-${i}"></div>
       </div>
     `;
   }).join('');
 
-  // Wire caption buttons
-  document.querySelectorAll('button[data-caption]').forEach(btn => {
+  // Wire editor open/close
+  document.querySelectorAll('button[data-open-editor]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const platform = btn.dataset.caption;
+      const idx = +btn.dataset.openEditor;
+      const editor = $('#editor-' + idx);
+      const state = window.__clipState.get(idx);
+      const isOpen = editor.classList.contains('open');
+      if (isOpen) {
+        editor.classList.remove('open');
+        const iframe = editor.querySelector('iframe');
+        iframe.src = '';
+        btn.textContent = 'Open in Editor ▸';
+      } else {
+        editor.classList.add('open');
+        loadClipPreview(idx);
+        initTimeline(idx);
+        btn.textContent = '◾ Close editor';
+        editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  });
+
+  // Wire caption generation
+  document.querySelectorAll('button[data-gen-captions]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = +btn.dataset.genCaptions;
+      const state = window.__clipState.get(idx);
+      btn.disabled = true;
+      btn.textContent = 'Working…';
+      try {
+        await generateCaptionsForClip(idx, state.start, state.end - state.start);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Regenerate captions';
+      }
+    });
+  });
+
+  // Wire edit-captions toggle
+  document.querySelectorAll('button[data-edit-captions]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.editCaptions;
+      const textarea = $('#caption-edit-' + idx);
+      const panel = $('#captions-' + idx);
+      if (textarea.style.display === 'none') {
+        textarea.style.display = '';
+        textarea.value = window.__clipState.get(idx).captionsText || '';
+        panel.style.display = 'none';
+        btn.textContent = 'Done editing';
+        textarea.addEventListener('input', () => {
+          window.__clipState.get(idx).captionsText = textarea.value;
+        });
+      } else {
+        textarea.style.display = 'none';
+        panel.style.display = '';
+        // Update displayed captions
+        const text = textarea.value;
+        panel.querySelector('.captions-text').textContent = text;
+        btn.textContent = 'Edit captions';
+      }
+    });
+  });
+
+  // Wire confirm-clip button (creates Twitch clip URL + handoff tiles)
+  document.querySelectorAll('button[data-confirm-clip]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.confirmClip;
+      confirmClip(idx);
+    });
+  });
+
+  // Wire social post-text generators
+  document.querySelectorAll('button[data-caption-gen]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const platform = btn.dataset.captionGen;
       const idx = +btn.dataset.idx;
       const clip = clips[idx];
       const box = $('#caption-' + idx);
       box.innerHTML = captionHTML(platform, clip, channelName);
       box.classList.add('open');
-      // Wire internal copy buttons
       box.querySelectorAll('button[data-copy]').forEach(b => {
         b.addEventListener('click', () => {
           const txt = box.querySelector('textarea').value;
@@ -1642,6 +2382,350 @@ function renderClips(clips, vodId, channelName) {
       });
     });
   });
+}
+
+// Load the Twitch player iframe for a clip based on current state.start
+function loadClipPreview(idx) {
+  const state = window.__clipState.get(idx);
+  const parentDomain = window.location.hostname || 'localhost';
+  const t = state.start;
+  const hrs = Math.floor(t/3600);
+  const mins = Math.floor(t%3600/60);
+  const secs = t%60;
+  const src = `https://player.twitch.tv/?video=v${state.vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=false`;
+  const iframe = document.querySelector(`#preview-${idx} iframe`);
+  if (iframe.src !== src) iframe.src = src;
+}
+
+// Timeline interaction: draggable handles
+function initTimeline(idx) {
+  const track = document.querySelector(`[data-timeline="${idx}"]`);
+  if (!track || track.__initialized) return;
+  track.__initialized = true;
+  const state = window.__clipState.get(idx);
+  const vodDur = state.vodDuration;
+  // Zoom the timeline to a window around the clip: [clipStart - 30s, clipEnd + 30s]
+  const viewStart = Math.max(0, state.start - 30);
+  const viewEnd = Math.min(vodDur, state.end + 60);
+  const viewRange = viewEnd - viewStart;
+  state.viewStart = viewStart;
+  state.viewEnd = viewEnd;
+
+  const fill = track.querySelector('.timeline-fill');
+  const handleStart = track.querySelector('.timeline-handle.start');
+  const handleEnd = track.querySelector('.timeline-handle.end');
+
+  function timeToPct(t) {
+    return Math.max(0, Math.min(100, ((t - viewStart) / viewRange) * 100));
+  }
+  function pctToTime(pct) {
+    return viewStart + (pct / 100) * viewRange;
+  }
+
+  function render() {
+    const sPct = timeToPct(state.start);
+    const ePct = timeToPct(state.end);
+    handleStart.style.left = sPct + '%';
+    handleEnd.style.left = ePct + '%';
+    fill.style.left = sPct + '%';
+    fill.style.width = (ePct - sPct) + '%';
+    $('#start-value-' + idx).textContent = fmtDur(state.start);
+    $('#end-value-' + idx).textContent = fmtDur(state.end);
+    $('#dur-value-' + idx).textContent = Math.round(state.end - state.start) + 's';
+  }
+  render();
+
+  let dragging = null;
+  function startDrag(handleName, ev) {
+    ev.preventDefault();
+    dragging = handleName;
+    const onMove = (e) => {
+      const rect = track.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const pct = ((clientX - rect.left) / rect.width) * 100;
+      const t = Math.round(pctToTime(pct));
+      if (dragging === 'start') {
+        state.start = Math.max(0, Math.min(t, state.end - 2));
+        // Reload preview iframe to new start position
+        loadClipPreview(idx);
+      } else {
+        // Cap clip duration at 60s (Twitch limit)
+        state.end = Math.min(vodDur, Math.max(t, state.start + 2), state.start + 60);
+      }
+      render();
+    };
+    const onUp = () => {
+      dragging = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+  }
+  handleStart.addEventListener('mousedown', (e) => startDrag('start', e));
+  handleStart.addEventListener('touchstart', (e) => startDrag('start', e), { passive: false });
+  handleEnd.addEventListener('mousedown', (e) => startDrag('end', e));
+  handleEnd.addEventListener('touchstart', (e) => startDrag('end', e), { passive: false });
+}
+
+// Confirm clip: produce the Twitch clip URL and show handoff tiles
+function confirmClip(idx) {
+  const state = window.__clipState.get(idx);
+  const t = state.start;
+  const hrs = Math.floor(t/3600);
+  const mins = Math.floor(t%3600/60);
+  const secs = t%60;
+  const vodLink = `https://www.twitch.tv/videos/${state.vodId}?t=${hrs}h${mins}m${secs}s`;
+  const clipCreateLink = state.channelName
+    ? `https://clips.twitch.tv/create?channel=${encodeURIComponent(state.channelName)}&videoID=${state.vodId}&offset=${t}`
+    : vodLink;
+  const captionsForHandoff = state.captionsText || '(no captions — generate them in the editor)';
+
+  const banner = $('#confirmed-' + idx);
+  banner.classList.add('open');
+  banner.innerHTML = `
+    <strong>Ready to produce.</strong> Twitch creates the horizontal clip directly from your trim points (note: Twitch caps clips at 60 seconds, full width). For a vertical version, hand it off to one of the editors below after you create the Twitch clip.<br><br>
+
+    <strong>Step 1 · Create the Twitch horizontal clip:</strong>
+    <div style="margin: 8px 0;"><a href="${clipCreateLink}" target="_blank"><button class="primary" style="padding: 10px 18px;">Open Twitch Clip Editor →</button></a></div>
+    <div style="font-size: 12px; color: var(--ink-dim);">Opens Twitch's clip editor at <code>${fmtDur(t)}</code>. Confirm the title, click Publish. Copy the clip URL back here for step 2.</div>
+
+    <div style="margin-top: 18px; font-size: 13px;"><strong style="color: var(--ink);">Step 2 · Paste the clip URL for vertical handoff:</strong></div>
+    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 6px;">
+      <input type="url" id="clipurl-${idx}" placeholder="https://clips.twitch.tv/..." style="font-family: var(--mono); font-size: 12px;" />
+      <button class="ghost small" id="clipurl-save-${idx}">Save</button>
+    </div>
+
+    <div style="margin-top: 18px; font-size: 13px;"><strong style="color: var(--ink);">Step 3 · Send to a vertical editor:</strong></div>
+    <div class="handoff-grid">
+      <a class="handoff-tile" id="handoff-capcut-${idx}" href="https://www.capcut.com/editor" target="_blank">
+        <div class="tile-platform">CapCut</div>
+        <div class="tile-desc">Best for mobile edits. Paste the clip URL, use Auto-Caption (good), and Auto-Reframe 9:16.</div>
+      </a>
+      <a class="handoff-tile" id="handoff-kapwing-${idx}" href="https://www.kapwing.com/studio" target="_blank">
+        <div class="tile-platform">Kapwing</div>
+        <div class="tile-desc">Web-based. Paste clip URL, Smart Cut to 9:16, adds burned captions from the text you've saved.</div>
+      </a>
+      <a class="handoff-tile" id="handoff-opus-${idx}" href="https://clipanything.opus.pro" target="_blank">
+        <div class="tile-platform">Opus Clip</div>
+        <div class="tile-desc">AI-automated. Paste your full VOD URL; it generates vertical clips with captions automatically.</div>
+      </a>
+    </div>
+
+    <div style="margin-top: 18px; font-size: 13px; color: var(--ink-dim);"><strong>Captions to paste into the editor:</strong></div>
+    <textarea readonly style="width: 100%; margin-top: 6px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); font-family: var(--serif); font-size: 13px; min-height: 70px; color: var(--ink);">${escapeHTML(captionsForHandoff)}</textarea>
+    <button class="ghost small" id="copy-caps-${idx}" style="margin-top: 6px;">Copy captions</button>
+  `;
+
+  // Wire copy captions
+  $('#copy-caps-' + idx).addEventListener('click', () => {
+    navigator.clipboard.writeText(state.captionsText || '').then(() => {
+      const b = $('#copy-caps-' + idx);
+      b.textContent = 'Copied ✓';
+      setTimeout(() => b.textContent = 'Copy captions', 2000);
+    });
+  });
+
+  // Wire clip URL save — once saved, attach to handoff tile links so the user lands on the editor with the URL ready in their clipboard
+  $('#clipurl-save-' + idx).addEventListener('click', () => {
+    const url = $('#clipurl-' + idx).value.trim();
+    if (!url) return;
+    state.finalClipUrl = url;
+    navigator.clipboard.writeText(url).then(() => {
+      $('#clipurl-save-' + idx).textContent = 'URL copied ✓';
+      setTimeout(() => $('#clipurl-save-' + idx).textContent = 'Save', 2000);
+    });
+  });
+
+  banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ===============================================
+// Captions (Whisper WASM)
+// ===============================================
+// Holds the VOD's HLS media segments + metadata so we can fetch & decode
+// audio for a specific clip timestamp without re-probing the whole thing.
+window.__captionAudioSource = null;
+// { playlistSegs: [{uri, duration}], variantBaseUrl, audioContext, cachedSegments: Map<idx, AudioBuffer> }
+
+async function setupCaptionAudioSource(vodId) {
+  if (window.__captionAudioSource && window.__captionAudioSource.vodId === vodId) return window.__captionAudioSource;
+  try {
+    const masterUrl = await getVODPlaylistURL(vodId);
+    const master = await fetchText(masterUrl);
+    const variants = parseMasterPlaylist(master);
+    if (!variants.length) throw new Error('No variants');
+    variants.sort((a, b) => a.bandwidth - b.bandwidth);
+    const variant = variants[0];
+    const mediaPlaylist = await fetchText(variant.uri);
+    const segs = parseMediaPlaylist(mediaPlaylist, variant.uri);
+    if (!segs.length) throw new Error('No segments');
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    window.__captionAudioSource = {
+      vodId,
+      playlistSegs: segs,
+      audioContext: ctx,
+      cachedSegments: new Map()
+    };
+    return window.__captionAudioSource;
+  } catch (e) {
+    throw new Error('Could not access VOD audio: ' + e.message);
+  }
+}
+
+// Fetch + decode segments spanning [startSec, startSec+durationSec], return a single Float32Array @ 16kHz mono
+async function extractAudioWindow(source, startSec, durationSec) {
+  const endSec = startSec + durationSec;
+  // Find which segments cover this range
+  let cursor = 0;
+  const wanted = [];
+  for (let i = 0; i < source.playlistSegs.length; i++) {
+    const segStart = cursor;
+    const segEnd = cursor + source.playlistSegs[i].duration;
+    if (segEnd > startSec && segStart < endSec) {
+      wanted.push({ idx: i, segStart, segEnd });
+    }
+    cursor = segEnd;
+    if (segStart > endSec) break;
+  }
+  if (!wanted.length) throw new Error('No segments cover this timestamp');
+  // Fetch and decode each (with cache)
+  const decoded = [];
+  for (const w of wanted) {
+    if (source.cachedSegments.has(w.idx)) {
+      decoded.push({ ...w, buffer: source.cachedSegments.get(w.idx) });
+      continue;
+    }
+    const bytes = await fetchBytes(source.playlistSegs[w.idx].uri);
+    const buffer = await source.audioContext.decodeAudioData(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+    );
+    source.cachedSegments.set(w.idx, buffer);
+    decoded.push({ ...w, buffer });
+    // Memory cap: keep only last 6 cached
+    if (source.cachedSegments.size > 6) {
+      const firstKey = source.cachedSegments.keys().next().value;
+      source.cachedSegments.delete(firstKey);
+    }
+  }
+  // Concatenate the portions of each buffer that fall within [startSec, endSec]
+  const TARGET_SR = 16000;
+  const outLen = Math.floor(durationSec * TARGET_SR);
+  const out = new Float32Array(outLen);
+  let writePos = 0;
+  for (const { segStart, buffer } of decoded) {
+    const bufStart = Math.max(0, startSec - segStart);
+    const bufEnd = Math.min(buffer.duration, endSec - segStart);
+    if (bufEnd <= bufStart) continue;
+    const sr = buffer.sampleRate;
+    const startSample = Math.floor(bufStart * sr);
+    const endSample = Math.floor(bufEnd * sr);
+    const ch = buffer.getChannelData(0);
+    // Resample to 16kHz by linear interpolation
+    const inputSpan = endSample - startSample;
+    const outputSpan = Math.floor((bufEnd - bufStart) * TARGET_SR);
+    for (let i = 0; i < outputSpan && writePos < outLen; i++) {
+      const srcIdx = startSample + Math.floor(i * inputSpan / outputSpan);
+      out[writePos++] = ch[srcIdx] || 0;
+    }
+  }
+  return out;
+}
+
+async function generateCaptionsForClip(idx, startSec, durationSec) {
+  const panel = $('#captions-' + idx);
+  panel.classList.add('open');
+  panel.classList.add('loading');
+  panel.style.display = '';
+
+  // If we have live state (from the editor), use that instead of args
+  if (window.__clipState && window.__clipState.has(idx)) {
+    const s = window.__clipState.get(idx);
+    startSec = s.start;
+    durationSec = s.end - s.start;
+  }
+
+  panel.innerHTML = `
+    <div class="captions-head"><span>Auto-captions (Whisper)</span></div>
+    <div class="captions-text">Initializing Whisper model (first use downloads ~40MB)…</div>
+    <div class="whisper-loading-bar"></div>
+  `;
+
+  try {
+    // 1. Ensure audio source ready
+    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    const source = window.__currentAudioSource;
+    if (!source) throw new Error('Audio source not ready. Try running the analysis again.');
+
+    // 2. Load Whisper (cached after first call)
+    panel.querySelector('.captions-text').textContent = 'Loading Whisper model (~40MB on first use, then cached)…';
+    const pipe = await window.loadWhisper((p) => {
+      if (p.status === 'progress' && p.file) {
+        const pct = p.total ? Math.round((p.loaded / p.total) * 100) : 0;
+        panel.querySelector('.captions-text').textContent = `Loading ${p.file} — ${pct}%`;
+      }
+    });
+
+    // 3. Extract audio slice at 16kHz mono
+    panel.querySelector('.captions-text').textContent = 'Fetching audio for this clip…';
+    // Use a slightly wider window for better context
+    const captionSec = Math.min(durationSec + 5, 45);
+    const audio = await extractAudioWindow(source, Math.max(0, startSec - 2), captionSec);
+
+    // 4. Transcribe
+    panel.querySelector('.captions-text').textContent = 'Transcribing…';
+    const result = await pipe(audio, {
+      chunk_length_s: 30,
+      stride_length_s: 5,
+      return_timestamps: true
+    });
+
+    // 5. Render
+    panel.classList.remove('loading');
+    const text = (result.text || '').trim();
+    const chunks = result.chunks || [];
+    let formatted = '';
+    if (chunks.length > 1) {
+      formatted = chunks.map(ch => {
+        const [ts] = ch.timestamp || [null];
+        const tsStr = ts !== null ? `[${(startSec - 2 + ts).toFixed(1)}s] ` : '';
+        return tsStr + ch.text.trim();
+      }).join('\n');
+    } else {
+      formatted = text;
+    }
+    // Save to clip state for editing + handoff
+    if (window.__clipState && window.__clipState.has(idx)) {
+      window.__clipState.get(idx).captionsText = formatted;
+    }
+    panel.innerHTML = `
+      <div class="captions-head">
+        <span>Auto-captions · Whisper tiny.en</span>
+        <button class="ghost small" id="copy-captions-${idx}">Copy</button>
+      </div>
+      <div class="captions-text">${escapeHTML(formatted) || '<em>No speech detected in this window.</em>'}</div>
+    `;
+    const copyBtn = $('#copy-captions-' + idx);
+    if (copyBtn) copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(formatted).then(() => {
+        copyBtn.textContent = 'Copied ✓';
+        setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+      });
+    });
+    // Reveal the Edit captions button
+    const editBtn = document.querySelector(`button[data-edit-captions="${idx}"]`);
+    if (editBtn) editBtn.style.display = '';
+  } catch (e) {
+    panel.classList.remove('loading');
+    panel.innerHTML = `
+      <div class="captions-head"><span>Auto-captions · failed</span></div>
+      <div class="captions-text" style="color: var(--danger);">${escapeHTML(e.message)}</div>
+    `;
+  }
 }
 
 function captionHTML(platform, clip, channelName) {
@@ -1767,9 +2851,13 @@ async function runAnalysis(vodId) {
   setProgress(0);
   logEl.innerHTML = '';
   $('#vod-section').style.display = 'none';
+  $('#stats-section').style.display = 'none';
   $('#feedback-section').style.display = 'none';
   $('#audio-section').style.display = 'none';
   $('#clips-section').style.display = 'none';
+
+  // Reset caption audio source for the new VOD
+  window.__currentAudioSource = null;
 
   const id = vodId;
   log('VOD ID: ' + id);
@@ -1789,7 +2877,7 @@ async function runAnalysis(vodId) {
     const v = videos.data[0];
     const duration = parseIso(v.duration);
     const channelName = v.user_login;
-    setProgress(15);
+    setProgress(10);
     setPill('pill-meta', 'Metadata · ok', 'ok');
 
     // Render VOD card
@@ -1798,9 +2886,7 @@ async function runAnalysis(vodId) {
     $('#vod-date').textContent = new Date(v.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     $('#vod-duration').textContent = fmtDurShort(duration);
     $('#vod-views').textContent = nFmt(v.view_count);
-    // Game lookup (optional; requires extra call)
     try {
-      // Twitch doesn't return game on /videos; skip gracefully
       $('#vod-game').textContent = v.type === 'archive' ? 'Past Broadcast' : v.type;
     } catch { $('#vod-game').textContent = '—'; }
     const thumb = v.thumbnail_url.replace('%{width}', '600').replace('%{height}', '338');
@@ -1821,44 +2907,86 @@ async function runAnalysis(vodId) {
       log('Chat fetch failed: ' + e.message, 'err');
       setPill('pill-chat', 'Chat · failed', 'err');
     }
-    setProgress(50);
+    setProgress(45);
 
-    $('#vod-chats').textContent = nFmt(comments.length);
+    // Unique chatters + velocity
+    const unique = uniqueChatters(comments);
+    $('#vod-unique').textContent = nFmt(unique);
     $('#vod-cpm').textContent = (comments.length / (duration/60)).toFixed(1);
     drawChart(comments, duration);
+
+    // Parse events + top emotes + render stats section
+    const events = parseEvents(comments);
+    const emotes = topEmotes(comments, 12);
+    renderEvents(events);
+    renderEmotes(emotes);
+    $('#stats-section').style.display = '';
     $('#feedback-section').style.display = '';
+    setProgress(55);
 
-    // Step 3: Clips (score now, render in a sec)
-    setPill('pill-clips', 'Clips · scoring', 'busy');
-    const clips = scoreClips(comments, duration);
-    log(`Ranked ${clips.length} candidate moments.`, 'ok');
-    setPill('pill-clips', `Clips · ${clips.length} found`, 'ok');
-    setProgress(60);
-
-    // Step 4: Audio probe
-    $('#audio-section').style.display = '';
-    $('#clips-section').style.display = '';
-    $('#clips-intro').textContent = `${clips.length} moments ranked by blended chat velocity + hype/laugh/emote density. Open each at the VOD timestamp, create a Twitch clip, or grab a platform-specific caption.`;
-
+    // Step 3: Audio probe (run before clip scoring so we can blend moments)
     let audio = null;
     try {
       audio = await analyzeAudio(id, duration);
       if (!audio.blocked) {
         log(`Audio probe done: ${audio.decoded} samples decoded, ${audio.results.filter(r=>r.echo).length} with echo signature.`, 'ok');
-        setPill('pill-audio', `Audio · ${audio.results.filter(r=>r.echo).length} flags`, audio.results.filter(r=>r.echo).length ? 'warn' : 'ok');
+        const echoCount = audio.results.filter(r => r.echo).length;
+        setPill('pill-audio', `Audio · ${echoCount} flag${echoCount===1?'':'s'}`, echoCount ? 'warn' : 'ok');
       } else {
         log('Audio probe: ' + audio.reason, 'warn');
+        setPill('pill-audio', 'Audio · blocked', 'warn');
       }
     } catch (e) {
       log('Audio probe error: ' + e.message, 'err');
       audio = { blocked: true, reason: e.message };
       setPill('pill-audio', 'Audio · blocked', 'warn');
     }
+
+    // Compute audio moments for clip blending
+    let audioMoments = [];
+    if (audio && !audio.blocked && audio.decodedBuffers) {
+      audioMoments = detectAudioMoments(audio.results, audio.decodedBuffers);
+      log(`Detected ${audioMoments.length} audio energy peaks.`, 'ok');
+    }
+    setProgress(80);
+
+    // Step 4: Score clips with audio moments blended in
+    setPill('pill-clips', 'Clips · scoring', 'busy');
+    const clips = scoreClips(comments, duration, audioMoments);
+    log(`Ranked ${clips.length} candidate moments.`, 'ok');
+    setPill('pill-clips', `Clips · ${clips.length} found`, 'ok');
+
+    // Set up caption audio source using the audio context from the probe
+    // (reuses fetched playlist segments so captions don't re-fetch from scratch)
+    if (audio && !audio.blocked && audio.audioContext) {
+      try {
+        // We need the playlist segments — re-resolve them (cheap)
+        const masterUrl = await getVODPlaylistURL(id);
+        const master = await fetchText(masterUrl);
+        const variants = parseMasterPlaylist(master);
+        variants.sort((a, b) => a.bandwidth - b.bandwidth);
+        const mediaPlaylist = await fetchText(variants[0].uri);
+        const segs = parseMediaPlaylist(mediaPlaylist, variants[0].uri);
+        window.__currentAudioSource = {
+          vodId: id,
+          playlistSegs: segs,
+          audioContext: audio.audioContext,
+          cachedSegments: new Map()
+        };
+        log('Caption audio source ready.', 'ok');
+      } catch (e) {
+        log('Caption audio unavailable: ' + e.message, 'warn');
+      }
+    }
+
+    $('#audio-section').style.display = '';
+    $('#clips-section').style.display = '';
+    $('#clips-intro').textContent = `${clips.length} moments ranked by blended chat velocity + hype/laugh/emote density${audioMoments.length ? ' + audio excitement peaks' : ''}. Click Preview to watch in-browser, edit timing, generate captions, or hand off to CapCut/Kapwing for vertical cropping.`;
     setProgress(90);
 
     // Step 5: Render feedback
     const feedback = generateFeedback({ duration }, comments, clips, audio);
-    $('#feedback-intro').innerHTML = `You streamed for ${fmtDurShort(duration)} and moved <strong>${nFmt(comments.length)}</strong> chat messages. Below is a rigorous read of what the data shows, followed by the standout moments and the audio health check.`;
+    $('#feedback-intro').innerHTML = `You streamed for ${fmtDurShort(duration)} and moved <strong>${nFmt(comments.length)}</strong> chat messages from <strong>${nFmt(unique)}</strong> unique chatters. Below is the rigorous read followed by standout moments and the audio health check.`;
     $('#feedback-list').innerHTML = feedback.map(([tag, body]) => `
       <li class="feedback-item">
         <span class="feedback-tag ${tag}">${tag === 'good' ? 'OK' : tag === 'bad' ? 'ISSUE' : tag === 'warn' ? 'NOTE' : 'INFO'}</span>
@@ -1867,7 +2995,7 @@ async function runAnalysis(vodId) {
     `).join('');
 
     renderAudio(audio);
-    renderClips(clips, id, channelName);
+    renderClips(clips, id, channelName, duration);
     setProgress(100);
     log('Analysis complete.', 'ok');
   } catch (e) {
