@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- mux.js: converts Twitch's MPEG-TS audio segments to fMP4 so browsers can decode them -->
+<script src="https://cdn.jsdelivr.net/npm/mux.js@7.1.0/dist/mux.min.js"></script>
 <script type="module">
 // Lazy-load Whisper only when the user actually requests captions
 window.__whisperPipeline = null;
@@ -1888,13 +1890,62 @@ function parseMediaPlaylist(text, baseUrl) {
   return segs;
 }
 
-// Decode audio from a video/ts segment using WebAudio (modern browsers can decode .ts with AAC)
+// Transmux TS bytes to fMP4 using mux.js, then decode to AudioBuffer.
+// Twitch serves VOD audio as MPEG-TS which most browsers no longer decode directly.
+// mux.js repackages into fMP4 (fragmented MP4) which every browser decodes reliably.
+function transmuxTStoMP4(tsBytes) {
+  return new Promise((resolve, reject) => {
+    if (typeof muxjs === 'undefined') {
+      reject(new Error('mux.js not loaded — check your internet connection'));
+      return;
+    }
+    try {
+      const transmuxer = new muxjs.mp4.Transmuxer({
+        remux: true,        // output a single fMP4
+        keepOriginalTimestamps: true
+      });
+      const chunks = [];
+      let initSegment = null;
+      transmuxer.on('data', (seg) => {
+        if (seg.type === 'combined' || seg.type === 'audio') {
+          // seg.initSegment is the moov (metadata), seg.data is the mdat (payload)
+          if (!initSegment && seg.initSegment) initSegment = seg.initSegment;
+          chunks.push(seg.data);
+        }
+      });
+      transmuxer.on('done', () => {
+        if (!initSegment || !chunks.length) {
+          reject(new Error('transmux produced no audio output'));
+          return;
+        }
+        // Concatenate init + all media chunks into one fMP4 file
+        const totalLen = initSegment.byteLength + chunks.reduce((a, c) => a + c.byteLength, 0);
+        const out = new Uint8Array(totalLen);
+        out.set(initSegment, 0);
+        let off = initSegment.byteLength;
+        for (const c of chunks) { out.set(c, off); off += c.byteLength; }
+        resolve(out);
+      });
+      transmuxer.push(tsBytes);
+      transmuxer.flush();
+    } catch (e) {
+      reject(new Error('transmux: ' + e.message));
+    }
+  });
+}
+
+// Decode audio from a TS segment: transmux → fMP4 → AudioBuffer
 async function decodeSegment(ctx, bytes) {
-  // If bytes are MPEG-TS, most browsers can't decode directly.
-  // Try anyway — some can, and newer chunks are sometimes fMP4.
+  let decodeInput;
   try {
-    const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    return await ctx.decodeAudioData(ab);
+    const fmp4 = await transmuxTStoMP4(bytes);
+    decodeInput = fmp4.buffer.slice(fmp4.byteOffset, fmp4.byteOffset + fmp4.byteLength);
+  } catch (transmuxErr) {
+    // Transmux failed — fall back to trying raw bytes (some segments may already be fMP4)
+    decodeInput = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  }
+  try {
+    return await ctx.decodeAudioData(decodeInput);
   } catch (e) {
     throw new Error('decode: ' + e.message);
   }
@@ -2000,7 +2051,7 @@ async function analyzeAudio(vodId, duration) {
 
   if (decoded === 0) {
     ctx.close();
-    return { blocked: true, reason: 'All audio segments failed to decode. Your browser may not support the TS/AAC format used. Chrome has the best compatibility.' };
+    return { blocked: true, reason: 'All audio segments failed to decode after transmuxing. Check browser console for details — this could be a mux.js loading failure (check internet / ad blockers) or an unexpected segment format.' };
   }
 
   return { blocked: false, results, decoded, decodeFails, decodedBuffers, audioContext: ctx };
@@ -2490,9 +2541,8 @@ async function extractAudioWindow(source, startSec, durationSec) {
       continue;
     }
     const bytes = await fetchBytes(source.playlistSegs[w.idx].uri);
-    const buffer = await source.audioContext.decodeAudioData(
-      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-    );
+    // Use the shared transmux-first decoder so TS segments work in all browsers
+    const buffer = await decodeSegment(source.audioContext, bytes);
     source.cachedSegments.set(w.idx, buffer);
     decoded.push({ ...w, buffer });
     // Memory cap: keep only last 6 cached
