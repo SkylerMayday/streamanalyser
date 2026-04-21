@@ -707,109 +707,6 @@ window.loadWhisper = async function(onProgress) {
   }
   .vod-tile .tile-meta .views { color: var(--accent-dark); }
 
-  /* STREAM STATS PANELS */
-  .stats-panels-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
-  }
-  @media (max-width: 900px) { .stats-panels-grid { grid-template-columns: 1fr; } }
-
-  .panel-heading {
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.25em;
-    color: var(--ink-dim);
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--rule);
-  }
-
-  /* EVENT FEED */
-  .event-list {
-    list-style: none;
-    max-height: 320px;
-    overflow-y: auto;
-  }
-  .event-row {
-    display: grid;
-    grid-template-columns: 68px auto 1fr;
-    gap: 12px;
-    align-items: baseline;
-    padding: 8px 0;
-    border-bottom: 1px dashed var(--rule);
-  }
-  .event-row:last-child { border-bottom: none; }
-  .event-time {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-dim);
-    font-weight: 500;
-  }
-  .event-type {
-    font-family: var(--mono);
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    padding: 3px 7px;
-    font-weight: 600;
-  }
-  .event-type.sub { background: var(--highlight); color: var(--accent-dark); }
-  .event-type.bits { background: #ddeef7; color: #1e40af; }
-  .event-type.gift { background: #e9f5db; color: var(--success); }
-  .event-type.raid { background: #ffebc6; color: var(--warning); }
-  .event-body {
-    font-family: var(--serif);
-    font-size: 14px;
-    color: var(--ink-2);
-  }
-  .event-body strong { color: var(--accent-dark); }
-
-  /* EMOTE LEADERBOARD */
-  .emote-list {
-    list-style: none;
-  }
-  .emote-row {
-    display: grid;
-    grid-template-columns: 32px 1fr 80px;
-    gap: 12px;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px dashed var(--rule);
-  }
-  .emote-row:last-child { border-bottom: none; }
-  .emote-rank {
-    font-family: var(--serif);
-    font-style: italic;
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--accent);
-  }
-  .emote-name {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink);
-  }
-  .emote-bar-wrap {
-    background: var(--paper-2);
-    height: 8px;
-    position: relative;
-  }
-  .emote-bar {
-    background: var(--accent);
-    height: 100%;
-    transition: width 0.3s;
-  }
-  .emote-count {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-dim);
-    font-weight: 500;
-    text-align: right;
-  }
-
   /* IN-BROWSER PREVIEW */
   .clip-preview-wrapper {
     background: var(--ink);
@@ -1214,34 +1111,11 @@ window.loadWhisper = async function(onProgress) {
     </div>
   </section>
 
-  <!-- ================ SECTION 2b: STREAM STATS ================ -->
-  <section id="stats-section" style="display: none;">
-    <div class="section-head">
-      <h2>The Numbers</h2>
-      <span class="kicker">§ 03 · Stream Stats</span>
-    </div>
-
-    <div class="stats-panels-grid">
-      <div>
-        <div class="panel-heading">Event Feed <span style="float: right; color: var(--ink-faint);" id="event-count">—</span></div>
-        <ul class="event-list" id="event-list">
-          <li class="empty-state" style="padding: 30px 10px;">Analyzing events…</li>
-        </ul>
-      </div>
-      <div>
-        <div class="panel-heading">Top Emotes <span style="float: right; color: var(--ink-faint);" id="emote-total-count">—</span></div>
-        <ul class="emote-list" id="emote-list">
-          <li class="empty-state" style="padding: 30px 10px;">Counting emotes…</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
   <!-- ================ SECTION 3: FEEDBACK ================ -->
   <section id="feedback-section" style="display: none;">
     <div class="section-head">
       <h2>The Verdict</h2>
-      <span class="kicker">§ 04 · Performance Feedback</span>
+      <span class="kicker">§ 03 · Performance Feedback</span>
     </div>
     <p class="feedback-intro" id="feedback-intro">Awaiting analysis…</p>
     <div class="chart-wrap">
@@ -1255,7 +1129,7 @@ window.loadWhisper = async function(onProgress) {
   <section id="audio-section" style="display: none;">
     <div class="section-head">
       <h2>The Ear Test</h2>
-      <span class="kicker">§ 05 · Audio Echo & Doubling</span>
+      <span class="kicker">§ 04 · Audio Echo & Doubling</span>
     </div>
     <div id="audio-results">
       <div class="empty-state">Audio probe pending…</div>
@@ -1273,7 +1147,7 @@ window.loadWhisper = async function(onProgress) {
   <section id="clips-section" style="display: none;">
     <div class="section-head">
       <h2>The Cuts</h2>
-      <span class="kicker">§ 06 · Clip-Worthy Moments</span>
+      <span class="kicker">§ 05 · Clip-Worthy Moments</span>
     </div>
     <p class="feedback-intro" id="clips-intro">Scoring moments by chat spike intensity, hype keyword density, and emote clusters. Top-ranked moments are listed below.</p>
     <div id="clips-list"><div class="empty-state">Clip analysis pending…</div></div>
@@ -1695,125 +1569,10 @@ function drawChart(comments, duration) {
 }
 
 // ===============================================
-// Analysis: events, emotes, unique chatters
+// Analysis: unique chatters
 // ===============================================
-// Heuristic parsing of system messages in chat replay.
-// Twitch's GQL chat comments endpoint returns system events (subs, resubs, raids, gift subs)
-// as regular comments from the USER who performed the action, with specific badges or
-// special message patterns. We detect them via pattern matching on the text + badges.
-function parseEvents(comments) {
-  const events = { subs: [], resubs: [], giftSubs: [], bits: [], raids: [], hosts: [] };
-  comments.forEach(c => {
-    const msg = c.msg || '';
-    // Bit cheers — messages often contain "cheer100", "bits200" inline with Twitch's cheermote system
-    const bitsMatch = msg.match(/\b(?:cheer|bits?|anon|streamlabs|uni|muxy|pride|showlove|party|seemsgood|good|biblethump|cool|scoops|hfg)(\d{1,6})\b/gi);
-    if (bitsMatch) {
-      const total = bitsMatch.reduce((sum, m) => sum + parseInt(m.match(/\d+/)[0], 10), 0);
-      if (total > 0) events.bits.push({ t: c.t, user: c.user, amount: total });
-    }
-    // Subscribed, resubbed patterns (these appear as messages from the subscribed user)
-    if (/\b(just subscribed|subscribed with|is now a subscriber|subscribed at tier)\b/i.test(msg)) {
-      events.subs.push({ t: c.t, user: c.user, msg: msg.slice(0, 160) });
-    }
-    if (/\b(subscribed for \d+ months|months streak|resubscribed)\b/i.test(msg)) {
-      events.resubs.push({ t: c.t, user: c.user, msg: msg.slice(0, 160) });
-    }
-    if (/\b(gifted .+ subs?|is gifting|gift sub)\b/i.test(msg)) {
-      const gcount = (msg.match(/\bgifted (\d+)/i) || [])[1] || 1;
-      events.giftSubs.push({ t: c.t, user: c.user, count: +gcount });
-    }
-    if (/\braid(ed|ing)\b.{0,40}\bviewer/i.test(msg)) {
-      const rcount = (msg.match(/(\d+)\s*viewer/i) || [])[1] || 0;
-      events.raids.push({ t: c.t, user: c.user, viewers: +rcount });
-    }
-  });
-  return events;
-}
-
-function topEmotes(comments, limit = 12) {
-  const counts = new Map();
-  comments.forEach(c => {
-    (c.emotes || []).forEach(e => {
-      const key = e.name || e.id;
-      if (!key) return;
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-  });
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([name, count]) => ({ name, count }));
-}
-
 function uniqueChatters(comments) {
   return new Set(comments.map(c => c.user)).size;
-}
-
-function subscriberRatio(comments) {
-  const byUser = new Map();
-  comments.forEach(c => {
-    if (!byUser.has(c.user)) byUser.set(c.user, c.isSubscriber);
-  });
-  const total = byUser.size;
-  const subs = [...byUser.values()].filter(Boolean).length;
-  return { total, subs, ratio: total ? subs / total : 0 };
-}
-
-// Render event feed (subs, bits, gifts, raids)
-function renderEvents(events) {
-  const all = [
-    ...events.subs.map(e => ({ ...e, type: 'sub', label: 'SUB' })),
-    ...events.resubs.map(e => ({ ...e, type: 'sub', label: 'RESUB' })),
-    ...events.giftSubs.map(e => ({ ...e, type: 'gift', label: `GIFT ×${e.count}` })),
-    ...events.bits.map(e => ({ ...e, type: 'bits', label: `${e.amount} BITS` })),
-    ...events.raids.map(e => ({ ...e, type: 'raid', label: `RAID ${e.viewers||''}` })),
-  ];
-  all.sort((a, b) => a.t - b.t);
-  const countText = `${all.length} total`;
-  $('#event-count').textContent = countText;
-  const list = $('#event-list');
-  if (!all.length) {
-    list.innerHTML = '<li class="empty-state" style="padding: 24px 10px; font-size: 13px;">No sub/bit/raid events detected in chat replay. Twitch hides most system events from the VOD — expect this to be sparse.</li>';
-    return;
-  }
-  list.innerHTML = all.map(e => {
-    const typeClass = e.type;
-    const bodyText = e.type === 'bits'
-      ? `<strong>${escapeHTML(e.user)}</strong> cheered ${e.amount} bits`
-      : e.type === 'gift'
-      ? `<strong>${escapeHTML(e.user)}</strong> gifted ${e.count} sub${e.count>1?'s':''}`
-      : e.type === 'raid'
-      ? `<strong>${escapeHTML(e.user)}</strong> raided${e.viewers?' with '+e.viewers+' viewers':''}`
-      : `<strong>${escapeHTML(e.user)}</strong> ${e.label === 'RESUB' ? 'resubscribed' : 'subscribed'}`;
-    return `
-      <li class="event-row">
-        <span class="event-time">${fmtDur(e.t)}</span>
-        <span class="event-type ${typeClass}">${e.label}</span>
-        <span class="event-body">${bodyText}</span>
-      </li>
-    `;
-  }).join('');
-}
-
-// Render top emotes leaderboard
-function renderEmotes(emotes) {
-  $('#emote-total-count').textContent = emotes.length ? `top ${emotes.length}` : '—';
-  const list = $('#emote-list');
-  if (!emotes.length) {
-    list.innerHTML = '<li class="empty-state" style="padding: 24px 10px; font-size: 13px;">No emotes detected in chat.</li>';
-    return;
-  }
-  const max = emotes[0].count;
-  list.innerHTML = emotes.map((e, i) => `
-    <li class="emote-row">
-      <span class="emote-rank">${i+1}</span>
-      <div>
-        <div class="emote-name">${escapeHTML(e.name)}</div>
-        <div class="emote-bar-wrap"><div class="emote-bar" style="width: ${(e.count/max*100).toFixed(1)}%"></div></div>
-      </div>
-      <span class="emote-count">${nFmt(e.count)}</span>
-    </li>
-  `).join('');
 }
 
 // ===============================================
@@ -2265,7 +2024,10 @@ function renderClips(clips, vodId, channelName, vodDuration) {
           </div>
           <div class="timeline-row">
             <span class="timeline-value" id="start-value-${i}">${fmtDur(start)}</span>
-            <div class="timeline-hint">Drag handles to adjust · duration shown mid-track · Twitch clips are capped at 60s</div>
+            <div class="timeline-hint">
+              Drag handles to adjust · duration mid-track · Twitch clips cap at 60s
+              <button class="ghost small" id="reload-preview-${i}" style="display:none; margin-left: 10px; padding: 3px 8px; font-size: 9px;">↻ Reload preview at new start</button>
+            </div>
             <span class="timeline-value" id="dur-value-${i}">${end - start}s</span>
           </div>
 
@@ -2395,6 +2157,7 @@ function loadClipPreview(idx) {
   const src = `https://player.twitch.tv/?video=v${state.vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=false`;
   const iframe = document.querySelector(`#preview-${idx} iframe`);
   if (iframe.src !== src) iframe.src = src;
+  state.previewedStart = t;
 }
 
 // Timeline interaction: draggable handles
@@ -2404,7 +2167,7 @@ function initTimeline(idx) {
   track.__initialized = true;
   const state = window.__clipState.get(idx);
   const vodDur = state.vodDuration;
-  // Zoom the timeline to a window around the clip: [clipStart - 30s, clipEnd + 30s]
+  // Zoom the timeline to a window around the clip: [clipStart - 30s, clipEnd + 60s]
   const viewStart = Math.max(0, state.start - 30);
   const viewEnd = Math.min(vodDur, state.end + 60);
   const viewRange = viewEnd - viewStart;
@@ -2432,8 +2195,24 @@ function initTimeline(idx) {
     $('#start-value-' + idx).textContent = fmtDur(state.start);
     $('#end-value-' + idx).textContent = fmtDur(state.end);
     $('#dur-value-' + idx).textContent = Math.round(state.end - state.start) + 's';
+    // Mark preview as out-of-sync if start moved away from current iframe position
+    const reloadBtn = $('#reload-preview-' + idx);
+    if (reloadBtn && state.previewedStart !== state.start) {
+      reloadBtn.style.display = '';
+    }
   }
   render();
+
+  // Debounced preview reload after drag ends
+  let reloadTimer = null;
+  function scheduleReload() {
+    if (reloadTimer) clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(() => {
+      loadClipPreview(idx);
+      const reloadBtn = $('#reload-preview-' + idx);
+      if (reloadBtn) reloadBtn.style.display = 'none';
+    }, 600);
+  }
 
   let dragging = null;
   function startDrag(handleName, ev) {
@@ -2446,8 +2225,6 @@ function initTimeline(idx) {
       const t = Math.round(pctToTime(pct));
       if (dragging === 'start') {
         state.start = Math.max(0, Math.min(t, state.end - 2));
-        // Reload preview iframe to new start position
-        loadClipPreview(idx);
       } else {
         // Cap clip duration at 60s (Twitch limit)
         state.end = Math.min(vodDur, Math.max(t, state.start + 2), state.start + 60);
@@ -2460,6 +2237,10 @@ function initTimeline(idx) {
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
+      // Only reload preview when user stops dragging, and only if start moved
+      if (state.start !== state.previewedStart) {
+        scheduleReload();
+      }
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -2470,6 +2251,15 @@ function initTimeline(idx) {
   handleStart.addEventListener('touchstart', (e) => startDrag('start', e), { passive: false });
   handleEnd.addEventListener('mousedown', (e) => startDrag('end', e));
   handleEnd.addEventListener('touchstart', (e) => startDrag('end', e), { passive: false });
+
+  // Manual reload button
+  const reloadBtn = $('#reload-preview-' + idx);
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', () => {
+      loadClipPreview(idx);
+      reloadBtn.style.display = 'none';
+    });
+  }
 }
 
 // Confirm clip: produce the Twitch clip URL and show handoff tiles
@@ -2815,14 +2605,47 @@ function renderAudio(audio) {
 
 // File upload fallback for audio analysis
 $('#audio-upload').addEventListener('change', async (ev) => {
-  const file = ev.target.files[0];
+  const file = ev.target.files && ev.target.files[0];
   if (!file) return;
-  log(`Decoding uploaded file: ${file.name}…`);
+  // Capture file metadata immediately — the File object reference can go stale
+  const fileName = file.name;
+  const fileSize = file.size;
+  const fileSizeMB = (fileSize / 1024 / 1024).toFixed(1);
+  log(`Reading ${fileName} (${fileSizeMB} MB)…`);
+
+  // Warn about huge files
+  if (fileSize > 2 * 1024 * 1024 * 1024) {
+    log(`File is ${fileSizeMB} MB. Browsers may fail to decode files over 2 GB. Consider using a shorter recording.`, 'warn');
+  }
+
+  let arrayBuffer;
+  try {
+    // Read immediately and synchronously-ish using FileReader — this keeps the File
+    // reference active through the read. Using file.arrayBuffer() has proven flaky
+    // in Chrome when the DOM rerenders during the read.
+    arrayBuffer = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('FileReader: ' + (reader.error?.message || 'unknown error')));
+      reader.readAsArrayBuffer(file);
+    });
+    log(`Read ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB into memory.`, 'ok');
+  } catch (e) {
+    log('Upload read failed: ' + e.message, 'err');
+    // Reset the input so user can try again with the same file
+    ev.target.value = '';
+    return;
+  }
+
+  // Reset the input now that we have the bytes — prevents any further issues
+  ev.target.value = '';
+
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   try {
-    const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+    log('Decoding audio… (this can take 30-60s for long recordings)');
+    const buf = await ctx.decodeAudioData(arrayBuffer);
     const dur = buf.duration;
-    log(`Decoded ${fmtDur(dur)}. Probing 15 samples across file…`);
+    log(`Decoded ${fmtDur(dur)}. Probing 15 samples across file…`, 'ok');
     const ch = buf.getChannelData(0);
     const N = 15;
     const results = [];
@@ -2837,8 +2660,16 @@ $('#audio-upload').addEventListener('change', async (ev) => {
     ctx.close();
     renderAudio({ blocked: false, results, decoded: N, decodeFails: 0 });
     setPill('pill-audio', 'Audio probe · done (upload)', 'ok');
+    log('Upload analysis complete.', 'ok');
   } catch (e) {
-    log('Upload decode failed: ' + e.message, 'err');
+    ctx.close();
+    let msg = e.message || 'decode error';
+    if (msg.includes('Unable to decode')) {
+      msg = `Browser could not decode this file format. Supported: MP3, M4A, WAV, most MP4 videos. For OBS recordings, use MP4 or MKV (Chrome supports MKV with AAC audio). ${msg}`;
+    } else if (msg.includes('out of memory') || msg.includes('allocation')) {
+      msg = `File too large to decode in memory. Try a shorter recording (under 30 minutes is safe). ${msg}`;
+    }
+    log('Upload decode failed: ' + msg, 'err');
   }
 });
 
@@ -2851,7 +2682,6 @@ async function runAnalysis(vodId) {
   setProgress(0);
   logEl.innerHTML = '';
   $('#vod-section').style.display = 'none';
-  $('#stats-section').style.display = 'none';
   $('#feedback-section').style.display = 'none';
   $('#audio-section').style.display = 'none';
   $('#clips-section').style.display = 'none';
@@ -2915,12 +2745,6 @@ async function runAnalysis(vodId) {
     $('#vod-cpm').textContent = (comments.length / (duration/60)).toFixed(1);
     drawChart(comments, duration);
 
-    // Parse events + top emotes + render stats section
-    const events = parseEvents(comments);
-    const emotes = topEmotes(comments, 12);
-    renderEvents(events);
-    renderEmotes(emotes);
-    $('#stats-section').style.display = '';
     $('#feedback-section').style.display = '';
     setProgress(55);
 
