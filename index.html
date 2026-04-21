@@ -1053,6 +1053,28 @@ window.loadWhisper = async function(onProgress) {
           </div>
         </div>
       </details>
+
+      <details class="help" style="margin-top: 8px;">
+        <summary>Audio proxy (optional — unlocks audio features)</summary>
+        <div style="padding-top: 10px; font-family: var(--serif); font-size: 14px; line-height: 1.6; color: var(--ink-2);">
+          By default, your browser blocks Twitch's VOD audio from loading into this app (CORS policy). To unlock audio echo detection, Whisper captions, and audio-spike clip scoring, run the local proxy script on your computer. Paste its URL here. Leave blank to skip — the app works fine without it, just without audio features.
+          <div style="margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">
+            Get proxy.js from the same place you downloaded this app. Run it with: <code style="background: var(--paper); padding: 1px 6px; border: 1px solid var(--rule);">node proxy.js</code>
+          </div>
+          <div class="input-row" style="grid-template-columns: 1fr auto auto; margin-top: 10px;">
+            <div>
+              <input type="url" id="proxy-url" placeholder="http://127.0.0.1:7777" style="font-family: var(--mono); font-size: 13px;" />
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button class="ghost small" id="proxy-test">Test</button>
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button class="ghost small" id="proxy-save">Save</button>
+            </div>
+          </div>
+          <div id="proxy-status" style="margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim);">Not configured</div>
+        </div>
+      </details>
     </div>
 
     <div class="status-row" id="status-row">
@@ -1378,6 +1400,67 @@ async function helix(path) {
 // Load user VODs
 // ===============================================
 $('#refresh-vods').addEventListener('click', loadUserVODs);
+
+// ===============================================
+// Audio Proxy configuration
+// ===============================================
+function updateProxyStatus(text, ok) {
+  const el = $('#proxy-status');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--danger)' : 'var(--ink-dim)';
+}
+
+// Restore proxy URL on load
+(function restoreProxy() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    if (saved.proxyUrl) {
+      $('#proxy-url').value = saved.proxyUrl;
+      updateProxyStatus(`Saved: ${saved.proxyUrl} (click Test to verify)`, null);
+    }
+  } catch {}
+})();
+
+$('#proxy-save').addEventListener('click', () => {
+  const url = $('#proxy-url').value.trim().replace(/\/$/, '');
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  if (url) {
+    saved.proxyUrl = url;
+    updateProxyStatus(`Saved: ${url}`, true);
+    log(`Audio proxy configured: ${url}`, 'ok');
+  } else {
+    delete saved.proxyUrl;
+    updateProxyStatus('Cleared — audio features will be blocked by CORS', null);
+    log('Audio proxy cleared.', 'ok');
+  }
+  localStorage.setItem('vodDeskCreds', JSON.stringify(saved));
+});
+
+$('#proxy-test').addEventListener('click', async () => {
+  const url = $('#proxy-url').value.trim().replace(/\/$/, '');
+  if (!url) { updateProxyStatus('Enter a URL first', false); return; }
+  updateProxyStatus('Testing…', null);
+  try {
+    const r = await fetch(`${url}/health`, { mode: 'cors', cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if (data.ok && data.name === 'vod-desk-proxy') {
+      updateProxyStatus(`✓ Proxy reachable (v${data.version || 1})`, true);
+    } else {
+      updateProxyStatus(`Got response but not from vod-desk-proxy: ${JSON.stringify(data).slice(0,80)}`, false);
+    }
+  } catch (e) {
+    let msg = e.message;
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      msg += ' — is the proxy running? Is the URL correct?';
+      if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+        msg += ' If you\'re on an HTTPS page, browsers may block HTTP localhost in Firefox/Safari; use Chrome or Edge.';
+      }
+    }
+    updateProxyStatus(`✗ ${msg}`, false);
+  }
+});
 
 async function loadUserVODs() {
   const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
@@ -1750,14 +1833,30 @@ async function getVODPlaylistURL(vodId) {
   return url;
 }
 async function fetchText(url) {
-  const r = await fetch(url, { mode: 'cors' });
+  const proxyUrl = getProxyUrl();
+  const fetchUrl = proxyUrl
+    ? `${proxyUrl}/proxy?url=${encodeURIComponent(url)}`
+    : url;
+  const r = await fetch(fetchUrl, { mode: 'cors' });
   if (!r.ok) throw new Error('fetch failed ' + r.status);
   return r.text();
 }
 async function fetchBytes(url) {
-  const r = await fetch(url, { mode: 'cors' });
+  const proxyUrl = getProxyUrl();
+  const fetchUrl = proxyUrl
+    ? `${proxyUrl}/proxy?url=${encodeURIComponent(url)}`
+    : url;
+  const r = await fetch(fetchUrl, { mode: 'cors' });
   if (!r.ok) throw new Error('fetch failed ' + r.status);
   return new Uint8Array(await r.arrayBuffer());
+}
+
+// Get the configured proxy URL from localStorage, or null if not set
+function getProxyUrl() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    return saved.proxyUrl ? saved.proxyUrl.replace(/\/$/, '') : null;
+  } catch { return null; }
 }
 
 function parseMasterPlaylist(text) {
