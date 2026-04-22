@@ -1606,10 +1606,15 @@ function updatePillAudio() {
   if (!pill) return;
   const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
   if (!saved.user) {
-    setPill('pill-audio', 'Audio · sign in required', '');
+    // Guest: hide the audio pill entirely — Advanced Analysis tab is also hidden,
+    // so there's no way for them to act on "audio locked" messaging. Removing the
+    // pill declutters the analysis bar.
+    pill.style.display = 'none';
   } else if (!saved.proxyUrl) {
+    pill.style.display = '';
     setPill('pill-audio', 'Audio · proxy required', '');
   } else {
+    pill.style.display = '';
     setPill('pill-audio', 'Audio · ready', '');
   }
 }
@@ -1846,6 +1851,69 @@ function detectAudioMoments(audioResults, decodedSegments) {
     }
   });
   return deduped;
+}
+
+// ===============================================
+// Loudness & clipping analysis
+// ===============================================
+// Analyses the same decoded audio buffers the probe already fetched, so this
+// costs zero extra network calls. Returns peak level (dBFS), average loudness,
+// percentage of samples clipping, and percentage of the probe that was near-silent.
+//
+// Thresholds reflect streaming norms, not broadcast (ATSC/EBU R128) norms —
+// Twitch streams aren't loudness-normalized, but viewer expectations cluster
+// around -14 to -16 dBFS average for voice-forward content.
+function computeLoudnessStats(decodedSegments) {
+  if (!decodedSegments || !decodedSegments.length) return null;
+
+  // Digital clip threshold — anything closer to full-scale than this is a clip.
+  // 0.99 rather than 1.0 because post-encode near-unity samples usually mean
+  // the signal *was* clipped pre-encoding even if not mathematically at 1.0.
+  const CLIP_THRESHOLD = 0.99;
+  // Near-silence threshold: RMS below -50 dBFS in a 1s window counts as quiet.
+  const SILENCE_RMS = Math.pow(10, -50 / 20);
+
+  let totalSamples = 0;
+  let clippedSamples = 0;
+  let peak = 0;
+  let sumSquares = 0; // for overall RMS
+  let quietWindows = 0;
+  let totalWindows = 0;
+
+  decodedSegments.forEach(({ buffer }) => {
+    const ch = buffer.getChannelData(0);
+    const sr = buffer.sampleRate;
+    const winSize = Math.floor(sr * 1.0); // 1-second windows for the silence metric
+
+    for (let i = 0; i < ch.length; i++) {
+      const s = ch[i];
+      const abs = Math.abs(s);
+      if (abs > peak) peak = abs;
+      if (abs >= CLIP_THRESHOLD) clippedSamples++;
+      sumSquares += s * s;
+      totalSamples++;
+    }
+
+    // Windowed silence detection: count how many 1-second windows were quiet
+    for (let i = 0; i + winSize <= ch.length; i += winSize) {
+      let wSum = 0;
+      for (let j = 0; j < winSize; j++) wSum += ch[i + j] * ch[i + j];
+      const wRms = Math.sqrt(wSum / winSize);
+      if (wRms < SILENCE_RMS) quietWindows++;
+      totalWindows++;
+    }
+  });
+
+  if (!totalSamples) return null;
+
+  const meanRms = Math.sqrt(sumSquares / totalSamples);
+  // Convert to dBFS. Floor at -100 to avoid -Infinity for true silence.
+  const peakDbFS = peak > 0 ? 20 * Math.log10(peak) : -100;
+  const meanDbFS = meanRms > 0 ? 20 * Math.log10(meanRms) : -100;
+  const clippingPct = (clippedSamples / totalSamples) * 100;
+  const quietPct = totalWindows ? (quietWindows / totalWindows) * 100 : 0;
+
+  return { peakDbFS, meanDbFS, clippingPct, quietPct, samplesAnalysed: totalSamples };
 }
 
 // ===============================================
@@ -2241,6 +2309,37 @@ function generateFeedback(meta, comments, clips, audio) {
     } else {
       fb.push(['good', `Clean audio: no echo detected across ${audio.results.length} sampled segments.`]);
     }
+
+    // Loudness & clipping — runs on the same decoded probe buffers
+    if (audio.loudness) {
+      const L = audio.loudness;
+
+      // Clipping is the most critical — distorted audio can't be fixed in post
+      if (L.clippingPct > 0.5) {
+        fb.push(['bad', `<strong>Audio is clipping</strong> — ${L.clippingPct.toFixed(2)}% of samples are at digital full-scale (peak ${L.peakDbFS.toFixed(1)} dBFS). This is distortion that can't be fixed after recording. Lower your mic gain or add a limiter (OBS: Filters → Limiter at -1 dB) so peaks don't hit the ceiling.`]);
+      } else if (L.clippingPct > 0.05) {
+        fb.push(['warn', `Occasional clipping detected (${L.clippingPct.toFixed(2)}% of samples, peak ${L.peakDbFS.toFixed(1)} dBFS). Not pervasive but worth pulling your mic gain down 2–3 dB or adding an OBS Limiter for safety.`]);
+      } else if (L.peakDbFS > -1) {
+        // Very close to but not quite hitting full scale — pre-clipping warning
+        fb.push(['warn', `Peak level reached <strong>${L.peakDbFS.toFixed(1)} dBFS</strong> — uncomfortably close to digital clipping. A single louder laugh or bass hit will distort. Aim for peaks around -3 to -6 dBFS.`]);
+      }
+
+      // Overall mix loudness. -14 to -16 dBFS is the sweet spot for voice-forward
+      // streaming content; below -22 means viewers will crank system volume and
+      // then get blasted when they switch tabs.
+      if (L.meanDbFS < -28 && L.meanDbFS > -100) {
+        fb.push(['warn', `Mix is <strong>quiet overall</strong> (average ${L.meanDbFS.toFixed(1)} dBFS). Viewers will crank their system volume to hear you, then get blasted switching to other content. Target average loudness closer to -16 dBFS for voice-forward streams.`]);
+      } else if (L.meanDbFS >= -18 && L.meanDbFS < -12) {
+        fb.push(['good', `Mix loudness <strong>${L.meanDbFS.toFixed(1)} dBFS</strong> is in the sweet spot for streaming voice content.`]);
+      }
+
+      // Near-silent stretches. Different signal than dead-air chat — this is
+      // audio, not chat, so it catches "streamer muted" or "long pauses" even
+      // when chat is active.
+      if (L.quietPct > 20) {
+        fb.push(['warn', `<strong>${L.quietPct.toFixed(0)}%</strong> of probed audio was near-silent (below -50 dBFS). Either mic was muted, gain is too low, or there were long dead-air stretches. Check that your mic is properly active throughout.`]);
+      }
+    }
   }
 
   return fb;
@@ -2275,6 +2374,8 @@ function renderClips(clips, vodId, channelName, vodDuration) {
             <div class="clip-title-row">
               <span class="clip-timestamp">${fmtDur(c.start)}</span>
               <span class="clip-duration">${Math.round(c.end - c.start)}s window</span>
+              ${c.audioBoost > 0.5 ? `<span class="clip-source-tag audio" title="This clip rode a measured audio energy spike — the proxy-enabled audio probe boosted its rank">🔊 audio peak${c.audioMoments.length > 1 ? ` ×${c.audioMoments.length}` : ''}</span>` : ''}
+              ${c.z > 1.5 ? `<span class="clip-source-tag chat" title="Chat velocity z-score — how far this window exceeded the stream's baseline message rate">💬 chat spike</span>` : ''}
               <span class="clip-score">score ${c.score.toFixed(2)}</span>
             </div>
             <div class="clip-reasons">${clipReason(c)}</div>
@@ -2983,6 +3084,7 @@ function renderAudio(audio) {
         <div class="feedback-body">${summaryText}</div>
       </li>
     </ul>
+    ${audio.loudness ? renderLoudnessPanel(audio.loudness) : ''}
     <div class="chart-wrap">
       <div class="chart-title"><span>Probe Results</span><span>${r.length} samples · lag 50–400ms</span></div>
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px;">
@@ -2994,6 +3096,48 @@ function renderAudio(audio) {
             </div>
           </div>
         `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// Render the loudness stats grid shown on the Advanced Analysis card.
+// Kept separate from renderAudio so the formatting is easy to adjust.
+function renderLoudnessPanel(L) {
+  // Colour each stat by how good/bad the value is, so at a glance the streamer
+  // sees where to focus.
+  const peakClass = L.clippingPct > 0.5 ? 'err' : L.peakDbFS > -1 ? 'warn' : 'ok';
+  const meanClass = (L.meanDbFS >= -18 && L.meanDbFS < -12) ? 'ok'
+                  : (L.meanDbFS < -28 || L.meanDbFS > -10) ? 'warn' : '';
+  const clipClass = L.clippingPct > 0.5 ? 'err' : L.clippingPct > 0.05 ? 'warn' : 'ok';
+  const quietClass = L.quietPct > 20 ? 'warn' : 'ok';
+
+  const col = cls => cls === 'ok' ? 'var(--success)'
+                   : cls === 'warn' ? 'var(--warning)'
+                   : cls === 'err' ? 'var(--danger)'
+                   : 'var(--ink)';
+
+  return `
+    <div class="stats-grid" style="margin-bottom: 20px;">
+      <div class="stat">
+        <div class="stat-label">Peak level</div>
+        <div class="stat-value" style="color: ${col(peakClass)};">${L.peakDbFS.toFixed(1)}<span style="font-size: 13px; color: var(--ink-dim); margin-left: 2px;">dBFS</span></div>
+        <div class="stat-sub">target &lt; -3 dBFS</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg loudness</div>
+        <div class="stat-value" style="color: ${col(meanClass)};">${L.meanDbFS.toFixed(1)}<span style="font-size: 13px; color: var(--ink-dim); margin-left: 2px;">dBFS</span></div>
+        <div class="stat-sub">target -14 to -16</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Clipping</div>
+        <div class="stat-value" style="color: ${col(clipClass)};">${L.clippingPct.toFixed(2)}<span style="font-size: 13px; color: var(--ink-dim); margin-left: 2px;">%</span></div>
+        <div class="stat-sub">samples at full-scale</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Near-silent</div>
+        <div class="stat-value" style="color: ${col(quietClass)};">${L.quietPct.toFixed(0)}<span style="font-size: 13px; color: var(--ink-dim); margin-left: 2px;">%</span></div>
+        <div class="stat-sub">1s windows &lt; -50 dBFS</div>
       </div>
     </div>
   `;
@@ -3054,7 +3198,15 @@ $('#audio-upload').addEventListener('change', async (ev) => {
       results.push({ offset: offsetSec, ...r });
     }
     ctx.close();
-    renderAudio({ blocked: false, results, decoded: N, decodeFails: 0 });
+    // Compute loudness from the whole decoded buffer — more accurate than the
+    // stream probe since this is the pre-encode original audio.
+    let loudness = null;
+    try {
+      loudness = computeLoudnessStats([{ offset: 0, buffer: buf }]);
+    } catch (e) {
+      log('Loudness computation on upload failed: ' + e.message, 'warn');
+    }
+    renderAudio({ blocked: false, results, decoded: N, decodeFails: 0, loudness });
     setPill('pill-audio', 'Audio probe · done (upload)', 'ok');
     log('Upload analysis complete.', 'ok');
   } catch (e) {
@@ -3195,6 +3347,15 @@ async function runAnalysis(vodId) {
       if (audio && !audio.blocked && audio.decodedBuffers) {
         audioMoments = detectAudioMoments(audio.results, audio.decodedBuffers);
         log(`Detected ${audioMoments.length} audio energy peaks.`, 'ok');
+        // Loudness stats run on the same decoded buffers — free to compute.
+        try {
+          audio.loudness = computeLoudnessStats(audio.decodedBuffers);
+          if (audio.loudness) {
+            log(`Loudness: peak ${audio.loudness.peakDbFS.toFixed(1)} dBFS, mean ${audio.loudness.meanDbFS.toFixed(1)} dBFS, ${audio.loudness.clippingPct.toFixed(2)}% clipping, ${audio.loudness.quietPct.toFixed(0)}% quiet.`, 'ok');
+          }
+        } catch (e) {
+          log('Loudness computation failed: ' + e.message, 'warn');
+        }
       }
     } else {
       const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
