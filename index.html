@@ -3060,10 +3060,13 @@ function renderAudio(audio) {
         <h3>Audio analysis couldn't run</h3>
         <p style="font-family: var(--serif); font-size: 14px; line-height: 1.6; margin-top: 6px;">${escapeHTML(audio.reason)}</p>
         <p style="font-family: var(--serif); font-size: 14px; line-height: 1.6; margin-top: 10px;">You can still check for echo by uploading a local recording of your stream below — OBS's "Start Recording" output works perfectly, or a downloaded Twitch VOD via third-party tools. The same autocorrelation analysis runs on the uploaded file.</p>
-        <button class="ghost small" id="upload-audio-btn" style="margin-top: 12px;">Upload Recording</button>
+        <button class="ghost small" id="upload-audio-btn-injected" style="margin-top: 12px;">Upload Recording</button>
       </div>
     `;
-    $('#upload-audio-btn').addEventListener('click', () => $('#audio-upload').click());
+    // Note: use a distinct ID from the persistent Advanced-tab button, otherwise
+    // querySelector returns the first match and this listener silently binds to
+    // the wrong element (which is what broke the injected button previously).
+    $('#upload-audio-btn-injected').addEventListener('click', () => $('#audio-upload').click());
     return;
   }
   const r = audio.results;
@@ -3153,6 +3156,23 @@ $('#audio-upload').addEventListener('change', async (ev) => {
   const fileSizeMB = (fileSize / 1024 / 1024).toFixed(1);
   log(`Reading ${fileName} (${fileSizeMB} MB)…`);
 
+  // Show visible progress in the audio-results card so user doesn't have to
+  // open the debug log drawer to know what's happening. The previous version
+  // logged silently and looked dead if decode took 30+ seconds.
+  const resultsCard = $('#audio-results-card');
+  const resultsEl = $('#audio-results');
+  resultsCard.style.display = '';
+  resultsEl.innerHTML = `
+    <div class="notice info">
+      <strong>Analysing upload:</strong> ${escapeHTML(fileName)} (${fileSizeMB} MB)<br>
+      <span id="upload-status">Reading file into memory…</span>
+    </div>
+  `;
+  const setUploadStatus = (msg) => {
+    const el = document.getElementById('upload-status');
+    if (el) el.textContent = msg;
+  };
+
   // Warn about huge files
   if (fileSize > 2 * 1024 * 1024 * 1024) {
     log(`File is ${fileSizeMB} MB. Browsers may fail to decode files over 2 GB. Consider using a shorter recording.`, 'warn');
@@ -3170,9 +3190,10 @@ $('#audio-upload').addEventListener('change', async (ev) => {
       reader.readAsArrayBuffer(file);
     });
     log(`Read ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB into memory.`, 'ok');
+    setUploadStatus(`Read ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB. Decoding audio (this can take 30–60s for long recordings)…`);
   } catch (e) {
     log('Upload read failed: ' + e.message, 'err');
-    // Reset the input so user can try again with the same file
+    resultsEl.innerHTML = `<div class="notice warn"><strong>Upload failed:</strong> Could not read file. ${escapeHTML(e.message)}</div>`;
     ev.target.value = '';
     return;
   }
@@ -3186,6 +3207,7 @@ $('#audio-upload').addEventListener('change', async (ev) => {
     const buf = await ctx.decodeAudioData(arrayBuffer);
     const dur = buf.duration;
     log(`Decoded ${fmtDur(dur)}. Probing 15 samples across file…`, 'ok');
+    setUploadStatus(`Decoded ${fmtDur(dur)}. Analysing…`);
     const ch = buf.getChannelData(0);
     const N = 15;
     const results = [];
@@ -3212,12 +3234,16 @@ $('#audio-upload').addEventListener('change', async (ev) => {
   } catch (e) {
     ctx.close();
     let msg = e.message || 'decode error';
-    if (msg.includes('Unable to decode')) {
-      msg = `Browser could not decode this file format. Supported: MP3, M4A, WAV, most MP4 videos. For OBS recordings, use MP4 or MKV (Chrome supports MKV with AAC audio). ${msg}`;
+    let userMsg;
+    if (msg.includes('Unable to decode') || msg.includes('EncodingError') || msg.includes('decode')) {
+      userMsg = `Browser could not decode this file format. Chrome/Edge reliably handle <strong>MP3, M4A, WAV, and MP4 (H.264 + AAC)</strong>. For OBS recordings, try setting Output → Recording → Format = <code>mp4</code> or re-encoding with <code>ffmpeg -i yourfile.mkv -c:a copy output.m4a</code> to extract just the audio.`;
     } else if (msg.includes('out of memory') || msg.includes('allocation')) {
-      msg = `File too large to decode in memory. Try a shorter recording (under 30 minutes is safe). ${msg}`;
+      userMsg = `File too large to decode in memory. Try a shorter recording (under 30 minutes is a safe ceiling on most browsers).`;
+    } else {
+      userMsg = `Decode failed: ${escapeHTML(msg)}`;
     }
     log('Upload decode failed: ' + msg, 'err');
+    resultsEl.innerHTML = `<div class="notice warn"><strong>Couldn't analyse this file.</strong><br>${userMsg}</div>`;
   }
 });
 
