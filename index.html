@@ -1187,6 +1187,17 @@
     <div class="card">
       <h2>Upload a local recording</h2>
       <p class="subtitle">If the live audio probe fails or you want to analyze your OBS recording directly, upload it here. More accurate since it's your original audio before Twitch re-encodes.</p>
+
+      <div class="notice warn" style="margin-bottom: 14px;">
+        <strong>Browser size limit:</strong> Chrome can't decode files larger than ~2 GB in a single pass — a full-stream OBS recording will fail. If your recording is big, extract just the audio track first (fast, lossless, produces a file ~10% the size):
+        <div style="margin-top: 8px; padding: 10px 12px; background: var(--ink); color: #86efac; border-radius: var(--r-sm); font-family: var(--mono); font-size: 12px; overflow-x: auto;">
+          ffmpeg -i "your-recording.mp4" -vn -c:a copy audio.m4a
+        </div>
+        <div style="font-size: 12px; margin-top: 6px; color: var(--ink-dim);">
+          Don't have ffmpeg? Install with <code>winget install Gyan.FFmpeg</code> in PowerShell, or download from <a href="https://www.gyan.dev/ffmpeg/builds/" target="_blank">gyan.dev/ffmpeg/builds</a>.
+        </div>
+      </div>
+
       <button class="ghost" id="upload-audio-btn">Choose file (audio or video)</button>
       <input type="file" id="audio-upload" accept="audio/*,video/*" style="display:none" />
     </div>
@@ -3200,17 +3211,25 @@ $('#audio-upload').addEventListener('change', async (ev) => {
     setUploadStatus(`Read ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB. Decoding audio (this can take 30–60s for long recordings)…`);
   } catch (e) {
     log('Upload read failed: ' + e.message, 'err');
-    // Give the user actionable help rather than just the raw error, since
-    // "permission problems" is frightening and vague.
+    // Give the user actionable help rather than just the raw error.
     let help;
-    if (e.message.includes('permission') || e.message.includes('reference to a file')) {
+    // Oversize file is the most common cause of this error with multi-GB files.
+    // Check size first so we give the right advice for the right failure mode.
+    if (fileSize > 1.8 * 1024 * 1024 * 1024) {
+      help = `
+        <strong>File is too large for the browser to read (${fileSizeMB} MB).</strong> Chrome has a hard ~2 GB limit on single memory allocations. Extract just the audio track first — it's fast, lossless, and produces a file about 10% the size:
+        <div style="margin-top: 8px; padding: 10px 12px; background: var(--ink); color: #86efac; border-radius: var(--r-sm); font-family: var(--mono); font-size: 12px; overflow-x: auto;">
+          ffmpeg -i "your-recording.mp4" -vn -c:a copy audio.m4a
+        </div>
+        Then upload <code>audio.m4a</code> instead.
+      `;
+    } else if (e.message.includes('permission') || e.message.includes('reference to a file')) {
       help = `
         <strong>The browser lost access to the file during read.</strong> This usually means one of:
         <ul style="margin: 8px 0 0 20px;">
           <li>The file is on OneDrive, Google Drive, or Dropbox and the cloud sync briefly unloaded it. Try copying it to a regular folder (Desktop or Documents) and uploading from there.</li>
           <li>Antivirus software is scanning the file mid-read. Try again in a few seconds.</li>
           <li>The file is on an external drive that went to sleep. Open it in another app first to wake the drive, then retry.</li>
-          <li>The file is very large (${fileSizeMB} MB). Try extracting just the audio first: <code>ffmpeg -i yourfile.mkv -c:a copy audio.m4a</code></li>
         </ul>
       `;
     } else {
@@ -3251,7 +3270,38 @@ $('#audio-upload').addEventListener('change', async (ev) => {
     } catch (e) {
       log('Loudness computation on upload failed: ' + e.message, 'warn');
     }
-    renderAudio({ blocked: false, results, decoded: N, decodeFails: 0, loudness });
+    // Wrap the render call so rendering errors surface visibly. Previously a
+    // template-literal error in renderAudio (e.g. renderLoudnessPanel throwing)
+    // would be caught by the outer catch and mislabeled as a decode error.
+    try {
+      log(`Calling renderAudio with ${results.length} results, loudness=${loudness ? 'yes' : 'no'}`);
+      renderAudio({ blocked: false, results, decoded: N, decodeFails: 0, loudness });
+      log('renderAudio returned, checking DOM…', 'ok');
+      // Verify the DOM actually updated — if innerHTML silently failed, we want to know.
+      const check = document.getElementById('audio-results');
+      if (check && check.innerHTML.includes('Analysing upload')) {
+        log('WARNING: DOM still shows "Analysing upload" after renderAudio — render did not take effect.', 'err');
+        // Force-clear and render a fallback so user sees *something*.
+        check.innerHTML = `
+          <div class="notice warn"><strong>Render bug:</strong> analysis completed but UI didn't update. Data below:</div>
+          <pre style="padding: 12px; background: var(--surface-2); border-radius: var(--r-sm); font-size: 11px; overflow-x: auto;">${escapeHTML(JSON.stringify({
+            decoded: N,
+            echoes: results.filter(x => x.echo).length,
+            loudness: loudness
+          }, null, 2))}</pre>
+        `;
+      }
+    } catch (renderErr) {
+      log('renderAudio threw: ' + renderErr.message, 'err');
+      const check = document.getElementById('audio-results');
+      if (check) {
+        check.innerHTML = `<div class="notice warn"><strong>Render error:</strong> ${escapeHTML(renderErr.message)}<br><br>Raw data:<pre style="font-size:11px; margin-top: 8px;">${escapeHTML(JSON.stringify({
+          decoded: N,
+          echoes: results.filter(x => x.echo).length,
+          loudness: loudness
+        }, null, 2))}</pre></div>`;
+      }
+    }
     setPill('pill-audio', 'Audio probe · done (upload)', 'ok');
     log('Upload analysis complete.', 'ok');
   } catch (e) {
