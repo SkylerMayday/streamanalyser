@@ -1434,25 +1434,37 @@ async function helixRaw(path, client, token) {
 // Uses the public GQL endpoint to fetch a channel's recent VODs (no auth).
 
 async function fetchChannelVods(channelLogin) {
-  // Helix is more robust but requires auth — use the public user info + videos via GQL for guests.
-  // Actually, Helix /videos accepts a Client-Id with app access token, but we don't want to require
-  // auth at all. The GQL equivalent:
-  const body = [{
-    operationName: 'FilterableVideoTower_Video',
-    variables: {
-      limit: 12,
-      channelOwnerLogin: channelLogin,
-      broadcastType: 'ARCHIVE',
-      videoSort: 'TIME'
-    },
-    extensions: { persistedQuery: {
-      version: 1,
-      sha256Hash: '2023a089fca2860c46dcdeb37b2ab2b60899b52cca1bfa4094e64f2db73a1f12'
-    }}
-  }];
+  // Use inline GraphQL rather than a persisted query hash — hashes rotate, inline is stable.
+  // Fetches the channel's archived broadcasts (VODs) via the public GQL endpoint, no auth needed.
+  const body = {
+    query: `query ChannelVideos($login: String!, $limit: Int!) {
+      user(login: $login) {
+        videos(first: $limit, type: ARCHIVE, sort: TIME) {
+          edges {
+            node {
+              id
+              title
+              lengthSeconds
+              previewThumbnailURL(width: 640, height: 360)
+              viewCount
+              createdAt
+              owner { login displayName }
+            }
+          }
+        }
+      }
+    }`,
+    variables: { login: channelLogin, limit: 12 }
+  };
   const res = await gql(body);
-  const videos = res[0]?.data?.user?.videos?.edges || [];
-  return videos.map(ed => ed.node).filter(Boolean);
+  // With a single request (not an array), response is the object itself
+  const user = Array.isArray(res) ? res[0]?.data?.user : res?.data?.user;
+  if (!user) {
+    // If user is null the channel doesn't exist or is private
+    return [];
+  }
+  const edges = user?.videos?.edges || [];
+  return edges.map(ed => ed.node).filter(Boolean);
 }
 
 async function loadVodsForChannel(channel) {
@@ -2894,19 +2906,23 @@ $('#audio-upload').addEventListener('change', async (ev) => {
 
 // Fetch VOD metadata via public GQL (no auth required, works for guests)
 async function fetchVodMetadata(vodId) {
-  const body = [{
-    operationName: 'VideoMetadata',
-    variables: {
-      channelLogin: '',
-      videoID: vodId
-    },
-    extensions: { persistedQuery: {
-      version: 1,
-      sha256Hash: '45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d'
-    }}
-  }];
+  const body = {
+    query: `query VideoByID($id: ID!) {
+      video(id: $id) {
+        id
+        title
+        lengthSeconds
+        previewThumbnailURL(width: 640, height: 360)
+        viewCount
+        createdAt
+        game { id displayName }
+        owner { login displayName }
+      }
+    }`,
+    variables: { id: vodId }
+  };
   const res = await gql(body);
-  const v = res[0]?.data?.video;
+  const v = Array.isArray(res) ? res[0]?.data?.video : res?.data?.video;
   if (!v) throw new Error('VOD not found or private');
   return v;
 }
