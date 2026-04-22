@@ -9,33 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- mux.js: converts Twitch's MPEG-TS audio segments to fMP4 so browsers can decode them -->
 <script src="https://cdn.jsdelivr.net/npm/mux.js@7.1.0/dist/mux.min.js"></script>
-<script type="module">
-// Lazy-load Whisper only when the user actually requests captions
-window.__whisperPipeline = null;
-window.__whisperLoading = false;
-window.loadWhisper = async function(onProgress) {
-  if (window.__whisperPipeline) return window.__whisperPipeline;
-  if (window.__whisperLoading) {
-    while (window.__whisperLoading) await new Promise(r => setTimeout(r, 200));
-    return window.__whisperPipeline;
-  }
-  window.__whisperLoading = true;
-  try {
-    const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/+esm');
-    env.allowLocalModels = false;
-    env.useBrowserCache = true;
-    const pipe = await pipeline(
-      'automatic-speech-recognition',
-      'Xenova/whisper-tiny.en',
-      { progress_callback: onProgress, quantized: true }
-    );
-    window.__whisperPipeline = pipe;
-    return pipe;
-  } finally {
-    window.__whisperLoading = false;
-  }
-};
-</script>
 <style>
   :root {
     --bg: #fafafa;
@@ -1162,6 +1135,26 @@ window.loadWhisper = async function(onProgress) {
     </div>
 
     <div class="card">
+      <h2>OpenAI API key (for captions)</h2>
+      <p class="subtitle">Auto-captions use OpenAI's Whisper API. Cheap (~$0.003 per 30-second clip) and very accurate. Your key is stored only in this browser's localStorage — never sent anywhere except OpenAI.</p>
+
+      <div class="notice warn" style="margin-bottom: 14px;">
+        <strong>Security note:</strong> API keys in browser storage are vulnerable to XSS. This is fine for a personal tool you run locally. Don't paste your key on a shared machine. Create a dedicated key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a> and set a spending limit.
+      </div>
+
+      <label>OpenAI API key</label>
+      <div class="row-3" style="margin-top: 4px;">
+        <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
+        <button class="ghost" id="openai-test">Test</button>
+        <button class="primary" id="openai-save">Save</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <div id="openai-status" style="font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">Not configured</div>
+        <button class="link" id="openai-clear" style="font-size: 12px;">Clear key</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Audio proxy configuration</h2>
       <p class="subtitle">Twitch's CDN blocks direct audio fetching from web browsers (CORS). A small local proxy unlocks audio features. Run it in PowerShell while using the app.</p>
 
@@ -1620,6 +1613,73 @@ function updatePillAudio() {
     setPill('pill-audio', 'Audio · ready', '');
   }
 }
+
+// ---- OpenAI API key wiring ----
+function updateOpenAIStatus(text, ok) {
+  const el = $('#openai-status');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--danger)' : 'var(--ink-dim)';
+}
+(function restoreOpenAIKey() {
+  const k = getOpenAIKey();
+  if (k) {
+    // Show only first 7 + last 4 chars — don't reveal the full key on reload
+    const masked = k.length > 15 ? k.slice(0, 7) + '…' + k.slice(-4) : '(saved)';
+    $('#openai-key').value = k;
+    updateOpenAIStatus(`Saved: ${masked} (click Test to verify)`, null);
+  }
+})();
+$('#openai-save').addEventListener('click', () => {
+  const key = $('#openai-key').value.trim();
+  if (!key) {
+    updateOpenAIStatus('Enter a key first', false);
+    return;
+  }
+  if (!key.startsWith('sk-')) {
+    updateOpenAIStatus('Key should start with "sk-". Check you pasted a full OpenAI key.', false);
+    return;
+  }
+  setOpenAIKey(key);
+  const masked = key.slice(0, 7) + '…' + key.slice(-4);
+  updateOpenAIStatus(`✓ Saved: ${masked}`, true);
+  log('OpenAI API key saved.', 'ok');
+});
+$('#openai-clear').addEventListener('click', () => {
+  if (!confirm('Clear the saved OpenAI API key? You will need to paste it again to use captions.')) return;
+  setOpenAIKey('');
+  $('#openai-key').value = '';
+  updateOpenAIStatus('Cleared', null);
+  log('OpenAI API key cleared.', 'ok');
+});
+$('#openai-test').addEventListener('click', async () => {
+  const key = $('#openai-key').value.trim();
+  if (!key) { updateOpenAIStatus('Enter a key first', false); return; }
+  updateOpenAIStatus('Testing…', null);
+  try {
+    // Cheapest verification: list models (doesn't consume transcription credits)
+    const r = await fetch('https://api.openai.com/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (r.status === 401) {
+      updateOpenAIStatus('✗ Invalid key (401). Check it at platform.openai.com/api-keys.', false);
+      return;
+    }
+    if (!r.ok) {
+      updateOpenAIStatus(`✗ HTTP ${r.status} — try again or check platform.openai.com/status`, false);
+      return;
+    }
+    const data = await r.json();
+    const hasWhisper = (data.data || []).some(m => m.id === 'whisper-1');
+    if (hasWhisper) {
+      updateOpenAIStatus('✓ Key valid, whisper-1 available', true);
+    } else {
+      updateOpenAIStatus('✓ Key valid (but whisper-1 not listed — transcription may still work)', true);
+    }
+  } catch (e) {
+    updateOpenAIStatus(`✗ ${e.message}`, false);
+  }
+});
 
 // Upload-your-own-recording fallback (lives on Advanced tab now)
 $('#upload-audio-btn').addEventListener('click', () => $('#audio-upload').click());
@@ -2262,7 +2322,7 @@ function renderClips(clips, vodId, channelName, vodDuration) {
           <h4 style="margin-top: 20px;">Auto-captions (Whisper, local)</h4>
           <div id="captions-${i}" class="captions-panel">
             <div class="captions-head"><span>Captions not generated yet</span></div>
-            <div class="captions-text" style="color: var(--ink-faint); font-style: italic;">Click Generate below to transcribe this window. First use downloads a ~40MB model — subsequent clips are fast.</div>
+            <div class="captions-text" style="color: var(--ink-faint); font-style: italic;">Click Generate below to transcribe this window with OpenAI Whisper (~$0.003 per 30-second clip). Requires an API key in Advanced Analysis.</div>
           </div>
           <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
             <button class="ghost small" data-gen-captions="${i}">Generate captions</button>
@@ -2653,6 +2713,113 @@ async function extractAudioWindow(source, startSec, durationSec) {
   return out;
 }
 
+// ===== OpenAI API key helpers =====
+function getOpenAIKey() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    return saved.openaiKey || '';
+  } catch { return ''; }
+}
+function setOpenAIKey(key) {
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  if (key) saved.openaiKey = key;
+  else delete saved.openaiKey;
+  localStorage.setItem('vodDeskCreds', JSON.stringify(saved));
+}
+// Whisper API pricing: $0.006 / minute. Estimate cost for a given audio duration.
+function estimateWhisperCost(seconds) {
+  const minutes = seconds / 60;
+  return minutes * 0.006;
+}
+
+// ===== WAV encoder =====
+// Takes a Float32Array of mono audio at given sample rate, returns a Blob of WAV bytes.
+// OpenAI accepts WAV, MP3, M4A, etc. — WAV is simplest since we already have raw PCM.
+function floatTo16BitPCMWav(float32, sampleRate) {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+  const blockAlign = numChannels * bitsPerSample / 8;
+  const dataLength = float32.length * 2; // 2 bytes per sample
+  const buffer = new ArrayBuffer(44 + dataLength);
+  const view = new DataView(buffer);
+
+  // RIFF header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataLength, true);
+  writeString(view, 8, 'WAVE');
+  // fmt chunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);            // chunk size
+  view.setUint16(20, 1, true);             // PCM format
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  // data chunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataLength, true);
+
+  // PCM samples (clamped + scaled to int16)
+  let offset = 44;
+  for (let i = 0; i < float32.length; i++, offset += 2) {
+    const s = Math.max(-1, Math.min(1, float32[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+function writeString(view, offset, str) {
+  for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
+
+// ===== OpenAI Whisper transcription =====
+// POSTs a multipart form to OpenAI's audio/transcriptions endpoint.
+// Model: whisper-1. Response format: verbose_json (gives us segment timestamps).
+async function transcribeWithOpenAI(wavBlob, apiKey) {
+  const formData = new FormData();
+  formData.append('file', wavBlob, 'clip.wav');
+  formData.append('model', 'whisper-1');
+  formData.append('response_format', 'verbose_json');
+
+  let response;
+  try {
+    response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      body: formData
+    });
+  } catch (networkErr) {
+    throw new Error('Network error reaching OpenAI — check your internet connection. (' + networkErr.message + ')');
+  }
+
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const err = await response.json();
+      detail = err.error?.message || JSON.stringify(err).slice(0, 200);
+    } catch {
+      detail = await response.text().catch(() => '(no body)');
+    }
+    // Map common statuses to actionable messages
+    if (response.status === 401) {
+      throw new Error('Invalid API key. Check the key you saved in Advanced Analysis → OpenAI API key. Create a new one at platform.openai.com/api-keys if needed.');
+    }
+    if (response.status === 429) {
+      throw new Error('Rate limit or quota exceeded. Either you hit your per-minute limit (wait ~60s) or your account is out of credits. Details: ' + detail);
+    }
+    if (response.status === 413) {
+      throw new Error('Audio file too large for OpenAI (25MB limit). This is unusual for a single clip — try a shorter window.');
+    }
+    if (response.status >= 500) {
+      throw new Error('OpenAI server error (' + response.status + '). Usually transient — try again in a moment. Details: ' + detail);
+    }
+    throw new Error('OpenAI API error ' + response.status + ': ' + detail);
+  }
+
+  return response.json();
+}
+
 async function generateCaptionsForClip(idx, startSec, durationSec) {
   const panel = $('#captions-' + idx);
   panel.classList.add('open');
@@ -2667,61 +2834,61 @@ async function generateCaptionsForClip(idx, startSec, durationSec) {
   }
 
   panel.innerHTML = `
-    <div class="captions-head"><span>Auto-captions (Whisper)</span></div>
-    <div class="captions-text">Initializing Whisper model (first use downloads ~40MB)…</div>
+    <div class="captions-head"><span>Auto-captions (OpenAI Whisper API)</span></div>
+    <div class="captions-text">Preparing…</div>
     <div class="whisper-loading-bar"></div>
   `;
 
   try {
-    // 1. Ensure audio source ready
-    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    // 1. Check API key
+    const apiKey = getOpenAIKey();
+    if (!apiKey) {
+      throw new Error('No OpenAI API key saved. Go to Advanced Analysis → OpenAI API key to add one.');
+    }
+
+    // 2. Check audio source
     const source = window.__currentAudioSource;
-    if (!source) throw new Error('Audio source not ready. Try running the analysis again.');
+    if (!source) throw new Error('Audio source not ready. Run the analysis again, and make sure the audio proxy is configured and the probe succeeded.');
 
-    // 2. Load Whisper (cached after first call)
-    panel.querySelector('.captions-text').textContent = 'Loading Whisper model (~40MB on first use, then cached)…';
-    const pipe = await window.loadWhisper((p) => {
-      if (p.status === 'progress' && p.file) {
-        const pct = p.total ? Math.round((p.loaded / p.total) * 100) : 0;
-        panel.querySelector('.captions-text').textContent = `Loading ${p.file} — ${pct}%`;
-      }
-    });
-
-    // 3. Extract audio slice at 16kHz mono
+    // 3. Extract audio slice at 16kHz mono (with small context padding)
     panel.querySelector('.captions-text').textContent = 'Fetching audio for this clip…';
-    // Use a slightly wider window for better context
     const captionSec = Math.min(durationSec + 5, 45);
-    const audio = await extractAudioWindow(source, Math.max(0, startSec - 2), captionSec);
+    const paddedStart = Math.max(0, startSec - 2);
+    const audio = await extractAudioWindow(source, paddedStart, captionSec);
 
-    // 4. Transcribe
-    panel.querySelector('.captions-text').textContent = 'Transcribing…';
-    const result = await pipe(audio, {
-      chunk_length_s: 30,
-      stride_length_s: 5,
-      return_timestamps: true
-    });
+    // 4. Encode as WAV for upload
+    panel.querySelector('.captions-text').textContent = 'Encoding audio (WAV)…';
+    const wav = floatTo16BitPCMWav(audio, 16000);
+    const sizeMB = (wav.size / 1024 / 1024).toFixed(2);
+    const cost = estimateWhisperCost(captionSec);
+    log(`Sending ${sizeMB} MB WAV (${captionSec.toFixed(0)}s audio) to OpenAI Whisper. Est. cost: $${cost.toFixed(4)}`);
 
-    // 5. Render
+    // 5. Transcribe
+    panel.querySelector('.captions-text').textContent = `Transcribing via OpenAI (~$${cost.toFixed(4)} for this clip)…`;
+    const result = await transcribeWithOpenAI(wav, apiKey);
+
+    // 6. Format output — verbose_json gives us segments with start/end times
     panel.classList.remove('loading');
     const text = (result.text || '').trim();
-    const chunks = result.chunks || [];
+    const segments = result.segments || [];
     let formatted = '';
-    if (chunks.length > 1) {
-      formatted = chunks.map(ch => {
-        const [ts] = ch.timestamp || [null];
-        const tsStr = ts !== null ? `[${(startSec - 2 + ts).toFixed(1)}s] ` : '';
-        return tsStr + ch.text.trim();
+    if (segments.length > 1) {
+      formatted = segments.map(seg => {
+        // Segment times are relative to the audio we sent. Shift by paddedStart to get VOD timestamp.
+        const absTime = paddedStart + (seg.start || 0);
+        return `[${absTime.toFixed(1)}s] ${(seg.text || '').trim()}`;
       }).join('\n');
     } else {
       formatted = text;
     }
-    // Save to clip state for editing + handoff
+
+    // 7. Save to clip state for editing + handoff
     if (window.__clipState && window.__clipState.has(idx)) {
       window.__clipState.get(idx).captionsText = formatted;
     }
     panel.innerHTML = `
       <div class="captions-head">
-        <span>Auto-captions · Whisper tiny.en</span>
+        <span>Auto-captions · OpenAI Whisper · $${cost.toFixed(4)}</span>
         <button class="ghost small" id="copy-captions-${idx}">Copy</button>
       </div>
       <div class="captions-text">${escapeHTML(formatted) || '<em>No speech detected in this window.</em>'}</div>
@@ -2736,12 +2903,14 @@ async function generateCaptionsForClip(idx, startSec, durationSec) {
     // Reveal the Edit captions button
     const editBtn = document.querySelector(`button[data-edit-captions="${idx}"]`);
     if (editBtn) editBtn.style.display = '';
+    log(`Captions generated for clip ${idx + 1}.`, 'ok');
   } catch (e) {
     panel.classList.remove('loading');
     panel.innerHTML = `
       <div class="captions-head"><span>Auto-captions · failed</span></div>
-      <div class="captions-text" style="color: var(--danger);">${escapeHTML(e.message)}</div>
+      <div class="captions-text" style="color: var(--danger); font-style: normal;">${escapeHTML(e.message)}</div>
     `;
+    log('Caption generation failed: ' + e.message, 'err');
   }
 }
 
