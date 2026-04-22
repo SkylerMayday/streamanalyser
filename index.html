@@ -3180,20 +3180,43 @@ $('#audio-upload').addEventListener('change', async (ev) => {
 
   let arrayBuffer;
   try {
-    // Read immediately and synchronously-ish using FileReader — this keeps the File
-    // reference active through the read. Using file.arrayBuffer() has proven flaky
-    // in Chrome when the DOM rerenders during the read.
-    arrayBuffer = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('FileReader: ' + (reader.error?.message || 'unknown error')));
-      reader.readAsArrayBuffer(file);
-    });
+    // Try the modern File.arrayBuffer() API first — it's more reliable in
+    // recent Chrome than FileReader for large files. FileReader can intermittently
+    // fail with "a reference to a file was acquired" errors on Chrome when the
+    // file is on OneDrive, external drives, or has antivirus interference.
+    // If the modern API fails for any reason, fall back to FileReader.
+    try {
+      arrayBuffer = await file.arrayBuffer();
+    } catch (primaryErr) {
+      log(`Primary read failed (${primaryErr.message}), trying FileReader fallback…`, 'warn');
+      arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('FileReader: ' + (reader.error?.message || 'unknown error')));
+        reader.readAsArrayBuffer(file);
+      });
+    }
     log(`Read ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB into memory.`, 'ok');
     setUploadStatus(`Read ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB. Decoding audio (this can take 30–60s for long recordings)…`);
   } catch (e) {
     log('Upload read failed: ' + e.message, 'err');
-    resultsEl.innerHTML = `<div class="notice warn"><strong>Upload failed:</strong> Could not read file. ${escapeHTML(e.message)}</div>`;
+    // Give the user actionable help rather than just the raw error, since
+    // "permission problems" is frightening and vague.
+    let help;
+    if (e.message.includes('permission') || e.message.includes('reference to a file')) {
+      help = `
+        <strong>The browser lost access to the file during read.</strong> This usually means one of:
+        <ul style="margin: 8px 0 0 20px;">
+          <li>The file is on OneDrive, Google Drive, or Dropbox and the cloud sync briefly unloaded it. Try copying it to a regular folder (Desktop or Documents) and uploading from there.</li>
+          <li>Antivirus software is scanning the file mid-read. Try again in a few seconds.</li>
+          <li>The file is on an external drive that went to sleep. Open it in another app first to wake the drive, then retry.</li>
+          <li>The file is very large (${fileSizeMB} MB). Try extracting just the audio first: <code>ffmpeg -i yourfile.mkv -c:a copy audio.m4a</code></li>
+        </ul>
+      `;
+    } else {
+      help = `Error: ${escapeHTML(e.message)}`;
+    }
+    resultsEl.innerHTML = `<div class="notice warn"><strong>Upload failed:</strong> ${help}</div>`;
     ev.target.value = '';
     return;
   }
