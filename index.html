@@ -1873,6 +1873,93 @@ function uniqueChatters(comments) {
   return new Set(comments.map(c => c.user)).size;
 }
 // ===============================================
+// Clip scoring
+// ===============================================
+const HYPE_KEYWORDS = /\b(pog|poggers|lol|lmao|lmfao|rofl|omg|wtf|holy|insane|clutch|nice|gg|wp|hype|W|cracked|clean|nuts|no way|let'?s go|lets go|goated|goat|sick|sheesh|based|actual|literally|bro|wait what)\b/i;
+const LAUGH_EMOJIS = /[😂🤣😭💀]|KEKW|LULW|OMEGALUL|PepeLaugh|LUL|KEK/g;
+const HYPE_EMOTES = /PogChamp|Pog|POGGERS|WAYTOODANK|PepegaCredit|EZ|EZY|W\s*$|Clap|PogU/g;
+
+function scoreClips(comments, duration, audioMoments) {
+  if (!comments.length) return [];
+  const windowSec = 30;
+  const hopSec = 10;
+  const windows = [];
+  comments.sort((a,b) => a.t - b.t);
+
+  const binSec = 5;
+  const nBins = Math.ceil(duration / binSec);
+  const bins = new Array(nBins).fill(0);
+  comments.forEach(c => {
+    const i = Math.floor(c.t / binSec);
+    if (i >= 0 && i < nBins) bins[i]++;
+  });
+  const mean = bins.reduce((a,b) => a+b, 0) / bins.length || 1;
+  const sd = Math.sqrt(bins.reduce((a,b) => a + (b-mean)**2, 0) / bins.length) || 1;
+
+  for (let start = 0; start + windowSec <= duration; start += hopSec) {
+    const end = start + windowSec;
+    const winMsgs = comments.filter(c => c.t >= start && c.t < end);
+    if (!winMsgs.length) continue;
+
+    const startBin = Math.floor(start / binSec);
+    const endBin = Math.floor(end / binSec);
+    const winBinSum = bins.slice(startBin, endBin).reduce((a,b) => a+b, 0);
+    const binsInWin = Math.max(1, endBin - startBin);
+    const z = ((winBinSum / binsInWin) - mean) / sd;
+
+    let laughs = 0, hype = 0, hypeEmotes = 0;
+    winMsgs.forEach(m => {
+      const msg = m.msg || '';
+      const laughMatches = msg.match(LAUGH_EMOJIS);
+      if (laughMatches) laughs += laughMatches.length;
+      if (HYPE_KEYWORDS.test(msg)) hype++;
+      const emoteMatches = msg.match(HYPE_EMOTES);
+      if (emoteMatches) hypeEmotes += emoteMatches.length;
+    });
+
+    const uniqueUsers = new Set(winMsgs.map(m => m.user)).size;
+    const windowAudioMoments = (audioMoments || []).filter(
+      m => m.absoluteTime >= start && m.absoluteTime < end
+    );
+    const audioBoost = windowAudioMoments.length > 0
+      ? Math.min(3.0, windowAudioMoments.reduce((sum, m) => sum + m.zScore, 0) * 0.4)
+      : 0;
+
+    const velocityScore = Math.max(0, z) * 1.0;
+    const excitementScore = (laughs * 0.35 + hype * 0.45 + hypeEmotes * 0.4 + uniqueUsers * 0.15) / windowSec;
+    const score = velocityScore + excitementScore * 2.5 + audioBoost;
+
+    windows.push({ start, end, score, z, laughs, hype, hypeEmotes,
+      unique: uniqueUsers, msgCount: winMsgs.length,
+      sample: winMsgs.slice(0, 12), audioMoments: windowAudioMoments, audioBoost });
+  }
+
+  windows.sort((a,b) => b.score - a.score);
+  const picked = [];
+  for (const w of windows) {
+    if (picked.some(p => !(w.end < p.start - 20 || w.start > p.end + 20))) continue;
+    picked.push(w);
+    if (picked.length >= 12) break;
+  }
+  picked.sort((a,b) => b.score - a.score);
+  return picked;
+}
+
+// Reasoning text for a clip window
+function clipReason(c) {
+  const parts = [];
+  if (c.audioBoost > 0.5) parts.push(`<strong>audio spike</strong> (${c.audioMoments.length} peak${c.audioMoments.length>1?'s':''})`);;
+  if (c.z > 2) parts.push(`chat velocity spiked <strong>${c.z.toFixed(1)}σ</strong> above baseline`);
+  else if (c.z > 1) parts.push(`chat activity up <strong>${c.z.toFixed(1)}σ</strong>`);
+  if (c.laughs > 5) parts.push(`${c.laughs} laugh reactions`);
+  if (c.hypeEmotes > 3) parts.push(`${c.hypeEmotes} hype emotes (PogU / EZ / Clap)`);
+  if (c.hype > 5) parts.push(`${c.hype} hype keywords (W / insane / clutch)`);
+  if (c.unique > 15) parts.push(`<strong>${c.unique}</strong> unique commenters reacting`);
+  if (!parts.length) parts.push(`${c.msgCount} messages in window`);
+  return parts.join(' · ');
+}
+
+// ===============================================
 // Benchmark reference card
 // ===============================================
 // Static industry reference values grounded in publicly available Twitch data.
