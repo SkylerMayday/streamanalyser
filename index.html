@@ -639,11 +639,22 @@
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: 18px;
     margin: 14px 0 0 50px;
-    display: none;
+    /* Smooth open/close via max-height animation */
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 18px;
+    opacity: 0;
+    transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.25s ease;
+    pointer-events: none;
   }
-  .clip-editor.open { display: block; }
+  .clip-editor.open {
+    max-height: 900px;
+    opacity: 1;
+    padding: 18px;
+    pointer-events: auto;
+    transition: max-height 0.4s ease, opacity 0.3s ease 0.05s, padding 0.25s ease;
+  }
   .clip-editor h4 {
     font-size: 12px;
     font-weight: 600;
@@ -1139,13 +1150,27 @@
 
     <!-- SUB-PANEL: Studio (clips) -->
     <div id="sub-panel-studio" style="display:none; margin-top: 20px;">
-      <div id="studio-content" style="display:none;">
-        <p id="clips-intro" style="color: var(--ink-dim); margin-bottom: 20px;">—</p>
-        <div id="clips-list"></div>
-      </div>
       <div id="studio-empty" class="empty">
         <h3>No clips yet</h3>
         <p>Run an analysis first. Ranked clip moments will appear here.</p>
+      </div>
+
+      <!-- Audio clips section: only shown when proxy is active and dense scan ran -->
+      <div id="studio-audio-section" style="display:none; margin-bottom: 32px;">
+        <div style="margin-bottom: 14px;">
+          <h2 style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:var(--ink);margin-bottom:4px;">🔊 Clips — audio energy peaks</h2>
+          <p id="audio-clips-intro" style="color:var(--ink-dim);font-size:14px;">—</p>
+        </div>
+        <div id="audio-clips-list"></div>
+      </div>
+
+      <!-- Chat clips section: always shown -->
+      <div id="studio-chat-section" style="display:none;">
+        <div style="margin-bottom: 14px;">
+          <h2 style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:var(--ink);margin-bottom:4px;">💬 Clips — chat activity</h2>
+          <p id="chat-clips-intro" style="color:var(--ink-dim);font-size:14px;">—</p>
+        </div>
+        <div id="chat-clips-list"></div>
       </div>
     </div>
 
@@ -1833,20 +1858,13 @@ function scoreClips(comments, duration, audioMoments) {
     });
 
     const uniqueUsers = new Set(winMsgs.map(m => m.user)).size;
-    const windowAudioMoments = (audioMoments || []).filter(
-      m => m.absoluteTime >= start && m.absoluteTime < end
-    );
-    const audioBoost = windowAudioMoments.length > 0
-      ? Math.min(3.0, windowAudioMoments.reduce((sum, m) => sum + m.zScore, 0) * 0.4)
-      : 0;
-
     const velocityScore = Math.max(0, z) * 1.0;
     const excitementScore = (laughs * 0.35 + hype * 0.45 + hypeEmotes * 0.4 + uniqueUsers * 0.15) / windowSec;
-    const score = velocityScore + excitementScore * 2.5 + audioBoost;
+    const score = velocityScore + excitementScore * 2.5;
 
     windows.push({ start, end, score, z, laughs, hype, hypeEmotes,
       unique: uniqueUsers, msgCount: winMsgs.length,
-      sample: winMsgs.slice(0, 12), audioMoments: windowAudioMoments, audioBoost });
+      sample: winMsgs.slice(0, 12), audioMoments: [], audioBoost: 0 });
   }
 
   windows.sort((a,b) => b.score - a.score);
@@ -1874,6 +1892,99 @@ function clipReason(c) {
   return parts.join(' · ');
 }
 
+// ===============================================
+// Audio clip scoring (dense scan results)
+// ===============================================
+// energyCurve: array of { t, rms } at ~90s intervals across the VOD
+// Returns up to 15 non-overlapping windows ranked by RMS energy peak
+function scoreAudioClips(energyCurve, duration) {
+  if (!energyCurve || energyCurve.length < 3) return [];
+  const windowSec = 30;
+
+  // ── Normalise against the 95th-percentile RMS ──────────────────────────────
+  // Raw RMS is useless across streams: a quiet streamer at 0.003 peak and a loud
+  // one at 0.4 peak should produce identical excitement curves. Dividing by the
+  // 95th percentile (not max, which is sensitive to a single spike) maps every
+  // stream's energy curve into the same [0..~1] range before z-scoring.
+  const sorted = [...energyCurve.map(p => p.rms)].sort((a, b) => a - b);
+  const p95idx = Math.floor(sorted.length * 0.95);
+  const p95 = sorted[p95idx] || sorted[sorted.length - 1] || 1e-6;
+  // Guard: if the whole stream is near-silent (p95 < noise floor), normalise
+  // anyway — relative peaks still matter even in a whisper-quiet VOD.
+  const normCurve = energyCurve.map(p => ({ t: p.t, rms: p.rms / p95 }));
+
+  // Build a quick lookup: average normalised RMS across points in a window
+  function normRmsInWindow(start, end) {
+    const pts = normCurve.filter(p => p.t >= start && p.t < end);
+    if (!pts.length) return 0;
+    return pts.reduce((a, p) => a + p.rms, 0) / pts.length;
+  }
+
+  // Z-score on the normalised curve — captures relative spikes regardless of
+  // absolute volume level
+  const normValues = normCurve.map(p => p.rms);
+  const mean = normValues.reduce((a, b) => a + b, 0) / normValues.length;
+  const sd = Math.sqrt(normValues.reduce((a, b) => a + (b - mean) ** 2, 0) / normValues.length) || 1;
+
+  // Candidate windows: centre each sample point in a 30s window
+  const candidates = [];
+  normCurve.forEach(pt => {
+    const start = Math.max(0, pt.t - windowSec / 2);
+    const end = Math.min(duration, start + windowSec);
+    const avgNormRms = normRmsInWindow(start, end);
+    const z = (avgNormRms - mean) / sd;
+    if (z > 0.5) { // meaningfully above this stream's own baseline
+      candidates.push({ start, end, score: z, z, rms: avgNormRms });
+    }
+  });
+
+  // Non-max suppression: no overlapping windows within 20s
+  candidates.sort((a, b) => b.score - a.score);
+  const picked = [];
+  for (const w of candidates) {
+    if (picked.some(p => !(w.end < p.start - 20 || w.start > p.end + 20))) continue;
+    picked.push(w);
+    if (picked.length >= 20) break; // keep extras so dedup has room
+  }
+  picked.sort((a, b) => b.score - a.score);
+  return picked;
+}
+
+// Dedup: remove audio clips whose start is within 45s of any chat clip
+// Returns [dedupedAudio, dedupedChat] — chat clips are untouched,
+// audio clips that overlap are replaced from the candidate pool if available
+function dedupClips(audioClips, chatClips, audioCandidates) {
+  const OVERLAP_SEC = 45;
+  function overlaps(a, b) {
+    return Math.abs(a.start - b.start) < OVERLAP_SEC;
+  }
+
+  const usedAudio = [];
+  const allAudioSorted = [...audioClips]; // already ranked by score
+
+  for (const ac of allAudioSorted) {
+    const clashesChat = chatClips.some(cc => overlaps(ac, cc));
+    const clashesAudio = usedAudio.some(ua => overlaps(ac, ua));
+    if (!clashesChat && !clashesAudio) {
+      usedAudio.push(ac);
+    }
+    if (usedAudio.length >= 15) break;
+  }
+
+  // Chat clips: always keep top 15, deduplicated against themselves only
+  const usedChat = [];
+  for (const cc of chatClips) {
+    if (!usedChat.some(uc => overlaps(cc, uc))) {
+      usedChat.push(cc);
+    }
+    if (usedChat.length >= 15) break;
+  }
+
+  return { audioClips: usedAudio, chatClips: usedChat };
+}
+
+// ===============================================
+// Benchmark reference card
 // ===============================================
 // Benchmark reference card
 // ===============================================
@@ -2092,17 +2203,23 @@ function generateFeedback(meta, comments, clips, audio) {
 // ===============================================
 // Render clips + captions
 // ===============================================
-function renderClips(clips, vodId, channelName, vodDuration) {
-  if (!clips.length) { $('#clips-list').innerHTML = '<div class="empty-state">No clip-worthy moments surfaced. Try a stream with more chat activity.</div>'; return; }
+function renderClips(clips, listId, vodId, channelName, vodDuration) {
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
+  if (!clips.length) {
+    listEl.innerHTML = '<div style="padding:20px 0; color:var(--ink-faint); font-size:14px;">No moments found for this section.</div>';
+    return;
+  }
   const parentDomain = window.location.hostname || 'localhost';
 
-  // Store clip state per index so the editor can mutate start/end/captions
-  window.__clipState = new Map();
+  // Namespace clip state by listId to avoid collisions between the two lists
+  if (!window.__clipState) window.__clipState = new Map();
 
-  $('#clips-list').innerHTML = clips.map((c, i) => {
+  listEl.innerHTML = clips.map((c, i) => {
+    const stateKey = listId + '-' + i;
     const start = Math.floor(c.start);
     const end = Math.ceil(c.end);
-    window.__clipState.set(i, {
+    window.__clipState.set(stateKey, {
       start, end,
       captionsText: '',
       vodId,
@@ -2110,8 +2227,9 @@ function renderClips(clips, vodId, channelName, vodDuration) {
       vodDuration
     });
     const sampleHTML = c.sample.map(m => `<div><span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML(m.msg).slice(0,120)}</div>`).join('');
+    const clipId = listId + '-' + i;
     return `
-      <div class="clip-item" data-idx="${i}">
+      <div class="clip-item" data-idx="${i}" data-clip-id="${clipId}" data-list-id="${listId}">
         <div class="clip-head">
           <span class="clip-rank">№ ${String(i+1).padStart(2,'0')}</span>
           <div style="flex:1;">
@@ -2131,11 +2249,11 @@ function renderClips(clips, vodId, channelName, vodDuration) {
           <a href="https://www.twitch.tv/videos/${vodId}?t=${Math.floor(c.start/3600)}h${Math.floor(c.start%3600/60)}m${Math.floor(c.start%60)}s" target="_blank" style="text-decoration:none;">
             <button class="ghost small" title="Open VOD at this timestamp in Twitch">▶ Open at ${fmtDur(c.start)}</button>
           </a>
-          <button class="primary" style="padding: 9px 16px;" data-open-editor="${i}">Preview ▸</button>
+          <button class="primary" style="padding: 9px 16px;" data-open-editor="${clipId}">Preview ▸</button>
         </div>
 
-        <div class="clip-editor" id="editor-${i}">
-          <div class="clip-preview-wrapper" id="preview-${i}">
+        <div class="clip-editor" id="editor-${clipId}">
+          <div class="clip-preview-wrapper" id="preview-${clipId}">
             <iframe
               title="VOD preview at ${fmtDur(start)}"
               allowfullscreen="true"
@@ -2147,117 +2265,101 @@ function renderClips(clips, vodId, channelName, vodDuration) {
 
           <div class="timeline-row" style="margin-top: 12px;">
             <span class="timeline-label">Start</span>
-            <div class="timeline-track" data-timeline="${i}">
+            <div class="timeline-track" data-timeline="${clipId}">
               <div class="timeline-fill"></div>
               <div class="timeline-handle start" data-handle="start"></div>
               <div class="timeline-handle end" data-handle="end"></div>
             </div>
-            <span class="timeline-value" id="end-value-${i}">${fmtDur(end)}</span>
+            <span class="timeline-value" id="end-value-${clipId}">${fmtDur(end)}</span>
           </div>
           <div class="timeline-row">
-            <span class="timeline-value" id="start-value-${i}">${fmtDur(start)}</span>
+            <span class="timeline-value" id="start-value-${clipId}">${fmtDur(start)}</span>
             <div class="timeline-hint">
               Drag handles to fine-tune · Twitch clips cap at 60s
-              <button class="ghost small" id="reload-preview-${i}" style="display:none; margin-left: 10px; padding: 3px 8px; font-size: 9px;">↻ Reload at new start</button>
+              <button class="ghost small" id="reload-preview-${clipId}" style="display:none; margin-left: 10px; padding: 3px 8px; font-size: 9px;">↻ Reload at new start</button>
             </div>
-            <span class="timeline-value" id="dur-value-${i}">${end - start}s</span>
+            <span class="timeline-value" id="dur-value-${clipId}">${end - start}s</span>
           </div>
         </div>
       </div>
     `;
   }).join('');
 
-  // Wire editor open/close (manual toggle)
-  function openEditor(idx) {
-    // Close any other open editors first
-    document.querySelectorAll('.clip-editor.open').forEach(ed => {
-      const otherIdx = +ed.closest('.clip-item').dataset.idx;
-      if (otherIdx !== idx) {
+  // Wire editor open/close (scoped to this list)
+  function openEditorById(clipId) {
+    // Close any other open editor in the same list
+    listEl.querySelectorAll('.clip-editor.open').forEach(ed => {
+      const otherId = ed.closest('.clip-item').dataset.clipId;
+      if (otherId !== clipId) {
         ed.classList.remove('open');
         const iframe = ed.querySelector('iframe');
         if (iframe) iframe.src = '';
-        const btn = document.querySelector(`button[data-open-editor="${otherIdx}"]`);
+        const btn = listEl.querySelector(`button[data-open-editor="${otherId}"]`);
         if (btn) btn.textContent = 'Preview ▸';
       }
     });
-    const editor = $('#editor-' + idx);
+    const editor = document.getElementById('editor-' + clipId);
+    if (!editor) return;
     editor.classList.add('open');
-    loadClipPreview(idx);
-    initTimeline(idx);
-    const btn = document.querySelector(`button[data-open-editor="${idx}"]`);
+    loadClipPreview(clipId);
+    initTimeline(clipId);
+    const btn = listEl.querySelector(`button[data-open-editor="${clipId}"]`);
     if (btn) btn.textContent = '◾ Close preview';
   }
 
-  function closeEditor(idx) {
-    const editor = $('#editor-' + idx);
+  function closeEditorById(clipId) {
+    const editor = document.getElementById('editor-' + clipId);
     if (!editor) return;
     editor.classList.remove('open');
     const iframe = editor.querySelector('iframe');
     if (iframe) iframe.src = '';
-    const btn = document.querySelector(`button[data-open-editor="${idx}"]`);
+    const btn = listEl.querySelector(`button[data-open-editor="${clipId}"]`);
     if (btn) btn.textContent = 'Preview ▸';
   }
 
-  document.querySelectorAll('button[data-open-editor]').forEach(btn => {
+  listEl.querySelectorAll('button[data-open-editor]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const idx = +btn.dataset.openEditor;
-      const editor = $('#editor-' + idx);
-      if (editor.classList.contains('open')) {
-        closeEditor(idx);
+      const clipId = btn.dataset.openEditor;
+      const editor = document.getElementById('editor-' + clipId);
+      if (editor && editor.classList.contains('open')) {
+        closeEditorById(clipId);
       } else {
-        openEditor(idx);
+        openEditorById(clipId);
       }
     });
   });
 
-  // Auto-open first editor immediately
+  // Auto-open first editor on render
   if (clips.length > 0) {
-    setTimeout(() => openEditor(0), 120);
-  }
-
-  // IntersectionObserver: as user scrolls, close the leaving clip and open the entering one
-  const clipItems = document.querySelectorAll('.clip-item');
-  if ('IntersectionObserver' in window && clipItems.length > 1) {
-    const ioOptions = { root: null, rootMargin: '-30% 0px -30% 0px', threshold: 0 };
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const idx = +entry.target.dataset.idx;
-        if (entry.isIntersecting) {
-          // Only auto-open if no editor was manually kept open
-          const anyOpen = [...document.querySelectorAll('.clip-editor.open')].some(ed => {
-            return +ed.closest('.clip-item').dataset.idx !== idx;
-          });
-          if (anyOpen || !entry.target.querySelector('.clip-editor.open')) {
-            openEditor(idx);
-          }
-        }
-      });
-    }, ioOptions);
-    clipItems.forEach(item => io.observe(item));
+    const firstClipId = listId + '-0';
+    setTimeout(() => openEditorById(firstClipId), 120);
   }
 
 }
 
 // Load the Twitch player iframe for a clip based on current state.start
-function loadClipPreview(idx) {
-  const state = window.__clipState.get(idx);
+function loadClipPreview(clipId) {
+  const state = window.__clipState.get(clipId);
+  if (!state) return;
   const parentDomain = window.location.hostname || 'localhost';
   const t = state.start;
   const hrs = Math.floor(t/3600);
   const mins = Math.floor(t%3600/60);
   const secs = t%60;
   const src = `https://player.twitch.tv/?video=v${state.vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=false`;
-  const iframe = document.querySelector(`#preview-${idx} iframe`);
-  if (iframe.src !== src) iframe.src = src;
+  const wrapper = document.getElementById('preview-' + clipId);
+  if (!wrapper) return;
+  const iframe = wrapper.querySelector('iframe');
+  if (iframe && iframe.src !== src) iframe.src = src;
   state.previewedStart = t;
 }
 
 // Timeline interaction: draggable handles
-function initTimeline(idx) {
-  const track = document.querySelector(`[data-timeline="${idx}"]`);
+function initTimeline(clipId) {
+  const track = document.querySelector(`[data-timeline="${clipId}"]`);
   if (!track || track.__initialized) return;
   track.__initialized = true;
-  const state = window.__clipState.get(idx);
+  const state = window.__clipState.get(clipId);
   const vodDur = state.vodDuration;
   // Zoom the timeline to a window around the clip: [clipStart - 30s, clipEnd + 60s]
   const viewStart = Math.max(0, state.start - 30);
@@ -2284,11 +2386,10 @@ function initTimeline(idx) {
     handleEnd.style.left = ePct + '%';
     fill.style.left = sPct + '%';
     fill.style.width = (ePct - sPct) + '%';
-    $('#start-value-' + idx).textContent = fmtDur(state.start);
-    $('#end-value-' + idx).textContent = fmtDur(state.end);
-    $('#dur-value-' + idx).textContent = Math.round(state.end - state.start) + 's';
-    // Mark preview as out-of-sync if start moved away from current iframe position
-    const reloadBtn = $('#reload-preview-' + idx);
+    document.getElementById('start-value-' + clipId).textContent = fmtDur(state.start);
+    document.getElementById('end-value-' + clipId).textContent = fmtDur(state.end);
+    document.getElementById('dur-value-' + clipId).textContent = Math.round(state.end - state.start) + 's';
+    const reloadBtn = document.getElementById('reload-preview-' + clipId);
     if (reloadBtn && state.previewedStart !== state.start) {
       reloadBtn.style.display = '';
     }
@@ -2300,8 +2401,8 @@ function initTimeline(idx) {
   function scheduleReload() {
     if (reloadTimer) clearTimeout(reloadTimer);
     reloadTimer = setTimeout(() => {
-      loadClipPreview(idx);
-      const reloadBtn = $('#reload-preview-' + idx);
+      loadClipPreview(clipId);
+      const reloadBtn = document.getElementById('reload-preview-' + clipId);
       if (reloadBtn) reloadBtn.style.display = 'none';
     }, 600);
   }
@@ -2345,10 +2446,10 @@ function initTimeline(idx) {
   handleEnd.addEventListener('touchstart', (e) => startDrag('end', e), { passive: false });
 
   // Manual reload button
-  const reloadBtn = $('#reload-preview-' + idx);
+  const reloadBtn = document.getElementById('reload-preview-' + clipId);
   if (reloadBtn) {
     reloadBtn.addEventListener('click', () => {
-      loadClipPreview(idx);
+      loadClipPreview(clipId);
       reloadBtn.style.display = 'none';
     });
   }
@@ -2522,6 +2623,105 @@ $('#audio-upload').addEventListener('change', async (ev) => {
 });
 
 // ===============================================
+// Dense audio scan (background, ~120 samples)
+// ===============================================
+async function runDenseAudioScan(vodId, duration, chatClips) {
+  log('Dense audio scan starting (~120 segments)…');
+  $('#audio-clips-intro').innerHTML = '<em style="color:var(--ink-faint)">Scanning audio… this runs in the background.</em>';
+  $('#studio-audio-section').style.display = '';
+
+  try {
+    const masterUrl = await AudioProbe.getVODPlaylistURL(vodId);
+    const master = await AudioProbe.fetchText(masterUrl);
+    const variants = AudioProbe.parseMasterPlaylist(master);
+    if (!variants.length) throw new Error('No variants');
+    variants.sort((a, b) => a.bandwidth - b.bandwidth);
+    const mediaPlaylist = await AudioProbe.fetchText(variants[0].uri);
+    const segs = AudioProbe.parseMediaPlaylist(mediaPlaylist, variants[0].uri);
+    if (!segs.length) throw new Error('No segments');
+
+    // ~120 evenly-spaced samples (one every ~90s for a 3h VOD)
+    const targetSamples = Math.min(120, segs.length);
+    const stride = Math.max(1, Math.floor(segs.length / targetSamples));
+    const sampled = [];
+    for (let i = 0; i < segs.length && sampled.length < targetSamples; i += stride) {
+      sampled.push({ seg: segs[i], idx: i });
+    }
+
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const energyCurve = [];
+    let done = 0;
+
+    // Fetch in batches of 8 to avoid flooding the proxy
+    const BATCH = 8;
+    for (let b = 0; b < sampled.length; b += BATCH) {
+      const batch = sampled.slice(b, b + BATCH);
+      await Promise.all(batch.map(async ({ seg, idx }) => {
+        try {
+          const offset = segs.slice(0, idx).reduce((a, s) => a + s.duration, 0);
+          const bytes = await AudioProbe.fetchBytes(seg.uri);
+          const buf = await AudioProbe.decodeSegment(ctx, bytes);
+          // Compute RMS energy for this segment
+          const ch = buf.getChannelData(0);
+          let sum = 0;
+          for (let j = 0; j < ch.length; j++) sum += ch[j] * ch[j];
+          const rms = Math.sqrt(sum / ch.length);
+          energyCurve.push({ t: offset, rms });
+        } catch (e) {
+          // Skip failed segments silently
+        }
+        done++;
+      }));
+      const pct = Math.round((done / sampled.length) * 100);
+      $('#audio-clips-intro').innerHTML =
+        `<em style="color:var(--ink-faint)">Scanning audio… ${pct}% (${done}/${sampled.length} segments)</em>`;
+      // Yield to browser between batches
+      await new Promise(r => setTimeout(r, 0));
+    }
+    ctx.close();
+
+    if (energyCurve.length < 5) throw new Error('Too few segments decoded');
+    energyCurve.sort((a, b) => a.t - b.t);
+
+    // Score audio clips
+    const audioCandidates = scoreAudioClips(energyCurve, duration);
+
+    // Dedup against chat clips
+    const { audioClips, chatClips: _ } = dedupClips(audioCandidates, chatClips, audioCandidates);
+
+    if (!audioClips.length) {
+      $('#audio-clips-intro').textContent = 'No distinct audio peaks found above baseline (all overlapped with chat clips or energy was flat).';
+      return;
+    }
+
+    // Add metadata for render (audio clips have no chat sample)
+    audioClips.forEach(c => {
+      c.sample = [];
+      c.laughs = 0; c.hype = 0; c.hypeEmotes = 0; c.unique = 0; c.msgCount = 0;
+      c.z = 0; c.audioBoost = c.score;
+      c.audioMoments = [];
+      c.isAudioClip = true;
+    });
+
+    // Render
+    const currentVodId = vodId;
+    const stateEl = document.getElementById('studio-chat-section');
+    const channelEl = stateEl ? stateEl.dataset.channel : '';
+    // Get vodId/channelName from chat clips state
+    const firstChatState = window.__clipState && [...window.__clipState.values()][0];
+    const ch = firstChatState ? firstChatState.channelName : '';
+    renderClips(audioClips, 'audio-clips-list', currentVodId, ch, duration);
+    $('#audio-clips-intro').innerHTML =
+      `<strong>${audioClips.length}</strong> moments with high audio energy — loud reactions, music drops, sudden silence breaks. ` +
+      `Deduplicated against chat clips (${audioCandidates.length - audioClips.length} removed as overlapping).`;
+    log(`Dense audio scan complete: ${audioClips.length} audio clips found.`, 'ok');
+  } catch (e) {
+    $('#audio-clips-intro').innerHTML = `<span style="color:var(--danger)">Audio scan failed: ${escapeHTML(e.message)}</span>`;
+    log('Dense audio scan error: ' + e.message, 'err');
+  }
+}
+
+// ===============================================
 // MAIN
 // ===============================================
 
@@ -2561,8 +2761,9 @@ async function runAnalysis(vodId) {
   $('#vod-section').style.display = 'none';
   $('#feedback-section').style.display = 'none';
   $('#audio-results-card').style.display = 'none';
-  $('#studio-content').style.display = 'none';
   $('#studio-empty').style.display = '';
+  $('#studio-audio-section').style.display = 'none';
+  $('#studio-chat-section').style.display = 'none';
   switchSubTab('analysis');
 
   // Reset caption audio source for the new VOD
@@ -2699,12 +2900,10 @@ async function runAnalysis(vodId) {
       }
     }
 
-    // Studio tab
+    // Studio tab — chat clips always shown immediately
     $('#studio-empty').style.display = 'none';
-    $('#studio-content').style.display = '';
-    // Reveal sub-tab bar and default to Stream Analysis
-
-    $('#clips-intro').innerHTML = `<strong>${clips.length}</strong> moments ranked by chat velocity + hype/laugh/emote density${audioMoments.length ? ' + audio excitement peaks' : ''}. Click <em>Open in Editor</em> to preview, trim, add captions, and generate a clip.`;
+    $('#studio-chat-section').style.display = '';
+    $('#chat-clips-intro').innerHTML = `<strong>${clips.length}</strong> moments ranked by chat velocity + hype keyword/emote density.`;
 
     // Render feedback
     const feedback = generateFeedback({ duration }, comments, clips, audio);
@@ -2725,9 +2924,15 @@ async function runAnalysis(vodId) {
       AudioProbe.renderAudio(audio);
     }
 
-    renderClips(clips, id, channelName, duration);
+    renderClips(clips, 'chat-clips-list', id, channelName, duration);
     setProgress(100);
     $('#analyzing-title').textContent = 'Analysis complete';
+
+    // Step 5: Dense audio scan — runs in background after main analysis completes
+    // Only if proxy is active. Does not block the main result display.
+    if (isAudioUnlocked()) {
+      runDenseAudioScan(id, duration, clips).catch(e => log('Dense audio scan failed: ' + e.message, 'warn'));
+    }
     log('Analysis complete.', 'ok');
   } catch (e) {
     log('Error: ' + e.message, 'err');
