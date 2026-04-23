@@ -1046,7 +1046,6 @@
     </div>
     <nav class="tabs">
       <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-      <button class="tab-btn" data-tab="studio">Studio</button>
       <button class="tab-btn" data-tab="advanced" id="tab-advanced" hidden>Advanced Analysis</button>
     </nav>
     <div class="header-right">
@@ -1161,28 +1160,32 @@
       </div>
     </div>
 
+    <!-- SUB-TABS: shown after analysis runs -->
+    <div id="sub-tabs-bar" style="display:none; margin: 24px 0 0;">
+      <div style="display:flex; gap:4px; border-bottom: 1px solid var(--border); padding-bottom: 0; margin-bottom: 24px;">
+        <button class="sub-tab-btn active" data-sub="analysis" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);padding:10px 16px;cursor:pointer;border-bottom:2px solid var(--ink);margin-bottom:-1px;">Stream Analysis</button>
+        <button class="sub-tab-btn" data-sub="studio" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-dim);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">Studio</button>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL: Stream Analysis -->
+    <div id="sub-panel-analysis" style="display:none;"></div>
+
+    <!-- SUB-PANEL: Studio (clips) -->
+    <div id="sub-panel-studio" style="display:none;">
+      <div id="studio-content" style="display:none;">
+        <p id="clips-intro" style="color: var(--ink-dim); margin-bottom: 20px;">—</p>
+        <div id="clips-list"></div>
+      </div>
+      <div id="studio-empty" class="empty">
+        <h3>No clips yet</h3>
+        <p>Run an analysis first. Ranked clip moments will appear here.</p>
+      </div>
+    </div>
+
     <div id="dashboard-empty" class="empty">
       <h3>No analysis yet</h3>
       <p>Enter a channel name above to load their recent VODs, or paste a VOD URL directly.</p>
-    </div>
-  </div>
-
-  <!-- ============ STUDIO ============ -->
-  <div class="view" id="view-studio">
-    <div class="view-header">
-      <h1>Studio</h1>
-      <p>Clip-worthy moments with in-browser preview, timeline trimming, captions, and social handoff.</p>
-    </div>
-
-    <div id="studio-content" style="display:none;">
-      <p id="clips-intro" style="color: var(--ink-dim); margin-bottom: 20px;">—</p>
-      <div id="clips-list"></div>
-    </div>
-
-    <div id="studio-empty" class="empty">
-      <h3>No clips yet</h3>
-      <p>Run an analysis on the Dashboard first. Ranked clip moments will appear here with preview, edit, and handoff tools.</p>
-      <button class="ghost" onclick="switchTab('dashboard')">Go to Dashboard</button>
     </div>
   </div>
 
@@ -1303,6 +1306,33 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 window.switchTab = switchTab;
+
+function switchSubTab(name) {
+  document.querySelectorAll('.sub-tab-btn').forEach(b => {
+    const active = b.dataset.sub === name;
+    b.style.color = active ? 'var(--ink)' : 'var(--ink-dim)';
+    b.style.fontWeight = active ? '600' : '500';
+    b.style.borderBottomColor = active ? 'var(--ink)' : 'transparent';
+  });
+  ['analysis', 'studio'].forEach(panel => {
+    const el = document.getElementById('sub-panel-' + panel);
+    if (el) el.style.display = panel === name ? '' : 'none';
+  });
+  // vod-section and feedback-section live inside analysis-section (not sub-panel-analysis)
+  // show/hide them based on active sub-tab
+  const inAnalysis = name === 'analysis';
+  const vs = document.getElementById('vod-section');
+  const fs = document.getElementById('feedback-section');
+  if (vs && vs.dataset.hasContent === '1') vs.style.display = inAnalysis ? '' : 'none';
+  if (fs && fs.dataset.hasContent === '1') fs.style.display = inAnalysis ? '' : 'none';
+}
+window.switchSubTab = switchSubTab;
+
+// Wire sub-tab buttons (delegated since bar is hidden initially)
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.sub-tab-btn');
+  if (btn) switchSubTab(btn.dataset.sub);
+});
 </script>
 
 <!-- MAIN LOGIC SCRIPT (preserved from previous version with wiring adjustments) -->
@@ -1436,7 +1466,8 @@ function showLoggedOut() {
   $('#user-chip').style.display = 'none';
   $('#tab-advanced').hidden = true;
   // If user was on advanced tab, bump them back to dashboard
-  if (document.querySelector('.tab-btn.active')?.dataset.tab === 'advanced') {
+  const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+  if (activeTab === 'advanced') {
     switchTab('dashboard');
   }
   updatePillAudio();
@@ -1502,11 +1533,12 @@ async function fetchChannelVods(channelLogin) {
   const body = {
     query: `query ChannelVideos($login: String!, $limit: Int!) {
       user(login: $login) {
-        videos(first: $limit, type: ARCHIVE, sort: TIME) {
+        videos(first: $limit, sort: TIME) {
           edges {
             node {
               id
               title
+              broadcastType
               lengthSeconds
               previewThumbnailURL(width: 640, height: 360)
               viewCount
@@ -1568,11 +1600,21 @@ function renderVodPicker(vods) {
     const views = v.viewCount || v.view_count || 0;
     const created = v.createdAt || v.created_at;
     const dateStr = created ? new Date(created).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const bType = (v.broadcastType || '').toUpperCase();
+    const isArchive = bType === 'ARCHIVE' || bType === '';
+    const typeLabel = bType === 'HIGHLIGHT' ? 'HIGHLIGHT' : bType === 'UPLOAD' ? 'UPLOAD' : '';
+    const typeBadge = typeLabel
+      ? `<span style="position:absolute;top:6px;left:6px;background:rgba(120,53,15,0.88);color:white;font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;letter-spacing:0.05em;">${typeLabel}</span>`
+      : '';
+    const chatNote = !isArchive
+      ? `<div style="font-size:11px;color:var(--warning);margin-top:4px;">Chat replay limited</div>`
+      : '';
     return `
       <button class="vod-tile" data-vod-id="${id}" data-channel="${escapeHTML(login)}">
-        <div class="tile-thumb">
+        <div class="tile-thumb" style="position:relative;">
           ${thumb && !thumb.includes('404_processing') ? `<img src="${thumb}" alt="" onerror="this.style.display='none'">` : ''}
           <span class="tile-dur">${fmtDurShort(dur)}</span>
+          ${typeBadge}
         </div>
         <div class="tile-body">
           <div class="tile-title">${escapeHTML(title)}</div>
@@ -1580,6 +1622,7 @@ function renderVodPicker(vods) {
             <span>${dateStr}</span>
             <span class="views">${nFmt(views)} views</span>
           </div>
+          ${chatNote}
         </div>
       </button>
     `;
@@ -2998,6 +3041,9 @@ async function runAnalysis(vodId) {
   $('#audio-results-card').style.display = 'none';
   $('#studio-content').style.display = 'none';
   $('#studio-empty').style.display = '';
+  $('#sub-tabs-bar').style.display = 'none';
+  $('#sub-panel-analysis').style.display = 'none';
+  $('#sub-panel-studio').style.display = 'none';
 
   // Reset caption audio source for the new VOD
   window.__currentAudioSource = null;
@@ -3038,6 +3084,7 @@ async function runAnalysis(vodId) {
       $('#vod-thumb').innerHTML = '<div class="placeholder">No thumbnail</div>';
     }
     $('#vod-section').style.display = '';
+    document.getElementById('vod-section').dataset.hasContent = '1';
 
     // Step 2: Chat
     setPill('pill-chat', 'Chat · fetching', 'busy');
@@ -3059,6 +3106,7 @@ async function runAnalysis(vodId) {
     $('#vod-cpm').textContent = duration ? (comments.length / (duration/60)).toFixed(1) : '—';
     drawChart(comments, duration);
     $('#feedback-section').style.display = '';
+    document.getElementById('feedback-section').dataset.hasContent = '1';
     setProgress(55);
 
     // Step 3: Audio probe — gated behind login + proxy
@@ -3136,6 +3184,9 @@ async function runAnalysis(vodId) {
     // Studio tab
     $('#studio-empty').style.display = 'none';
     $('#studio-content').style.display = '';
+    // Reveal sub-tab bar and default to Stream Analysis
+    $('#sub-tabs-bar').style.display = '';
+    switchSubTab('analysis');
     $('#clips-intro').innerHTML = `<strong>${clips.length}</strong> moments ranked by chat velocity + hype/laugh/emote density${audioMoments.length ? ' + audio excitement peaks' : ''}. Click <em>Open in Editor</em> to preview, trim, add captions, and generate a clip.`;
 
     // Render feedback
