@@ -1008,6 +1008,146 @@
   details.collapsed[open] summary { border-bottom: 1px solid var(--border); }
   details.collapsed > div { padding: 16px; }
 
+  /* INNER TABS (Advanced Analysis sub-navigation) */
+  .inner-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .inner-tab-btn {
+    background: transparent;
+    border: none;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    padding: 10px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s;
+  }
+  .inner-tab-btn.active {
+    color: var(--ink);
+    font-weight: 600;
+    border-bottom-color: var(--ink);
+  }
+  .inner-tab-btn:hover:not(.active) { color: var(--ink); }
+  .inner-panel { display: none; }
+  .inner-panel.active { display: block; }
+
+  /* HISTORY CARDS */
+  .history-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 14px;
+  }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .history-item:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.08);
+  }
+  .history-item-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .history-item-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .history-item-date {
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .history-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .history-metric {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    border: 1px solid var(--border);
+  }
+  .history-metric.ok   { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+  .history-metric.warn { background: var(--warning-soft); color: var(--warning); border-color: var(--warning); }
+  .history-metric.bad  { background: var(--danger-soft);  color: var(--danger);  border-color: var(--danger); }
+
+  /* IMPROVEMENT NOTES */
+  .improvement-notes {
+    margin-top: 18px;
+  }
+  .improvement-notes h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .improvement-note {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .improvement-note:last-child { border-bottom: none; }
+  .improvement-note-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 20px;
+    margin-top: 2px;
+  }
+  .improvement-note strong { color: var(--ink); font-weight: 600; }
+
+  /* CCV TIER SELECTOR */
+  .tier-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .tier-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tier-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tier-btn.active { background: var(--ink); color: white; border-color: var(--ink); }
+
   .locked-panel {
     background: var(--surface);
     border: 2px dashed var(--border-strong);
@@ -1143,6 +1283,7 @@
             </div>
             <div id="benchmark-card" style="display:none; margin-top: 18px;"></div>
             <ul class="feedback-list" id="feedback-list" style="margin-top: 12px;"></ul>
+            <div id="improvement-notes-panel" style="display:none; margin-top: 4px;"></div>
           </div>
         </div>
       </div>
@@ -1184,61 +1325,96 @@
   <div class="view" id="view-advanced">
     <div class="view-header">
       <h1>Advanced Analysis</h1>
-      <p>Audio echo detection and audio-spike clip scoring. Requires a local proxy.</p>
+      <p>Audio diagnostics and stream history. Sign-in required.</p>
     </div>
 
-    <div class="card">
-      <h2>Audio proxy configuration</h2>
-      <p class="subtitle">Twitch's CDN blocks direct audio fetching from web browsers (CORS). A small local proxy unlocks audio features. Run it in PowerShell while using the app.</p>
-
-      <div class="notice info">
-        <strong>Setup instructions:</strong>
-        <ol>
-          <li>Install <a href="https://nodejs.org" target="_blank">Node.js (LTS)</a> if you don't have it</li>
-          <li>Download <code>proxy.js</code> (provided separately)</li>
-          <li>Save it anywhere (e.g., <code>Documents\stream-analyser</code>)</li>
-          <li>Open PowerShell in that folder and run <code>node proxy.js</code></li>
-          <li>Leave the PowerShell window open, paste the proxy URL below</li>
-        </ol>
-      </div>
-
-      <label style="margin-top: 14px;">Proxy URL</label>
-      <div class="row-3" style="margin-top: 4px;">
-        <input type="url" id="proxy-url" placeholder="http://127.0.0.1:7777" />
-        <button class="ghost" id="proxy-test">Test</button>
-        <button class="primary" id="proxy-save">Save</button>
-      </div>
-      <div id="proxy-status" style="margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">Not configured</div>
+    <!-- Inner tab bar -->
+    <div class="inner-tabs">
+      <button class="inner-tab-btn active" data-inner="audio">Audio Analysis</button>
+      <button class="inner-tab-btn" data-inner="stream-history">Advanced Stream Analysis</button>
     </div>
 
-    <div id="audio-results-card" class="card" style="display:none;">
-      <h2>Audio echo &amp; doubling probe</h2>
-      <p class="subtitle">15 sampled segments from across the VOD, checked for audio doubling via autocorrelation.</p>
-      <div id="audio-results"></div>
-    </div>
+    <!-- ── INNER PANEL: Audio Analysis ── -->
+    <div class="inner-panel active" id="inner-audio">
 
-    <div class="card">
-      <h2>Upload a local recording</h2>
-      <p class="subtitle">If the live audio probe fails or you want to analyze your OBS recording directly, upload it here. More accurate since it's your original audio before Twitch re-encodes.</p>
+      <div class="card">
+        <h2>Audio proxy configuration</h2>
+        <p class="subtitle">Twitch's CDN blocks direct audio fetching from web browsers (CORS). A small local proxy unlocks audio features. Run it in PowerShell while using the app.</p>
 
-      <div class="notice warn" style="margin-bottom: 14px;">
-        <strong>Browser size limit:</strong> Chrome can't decode files larger than ~2 GB in a single pass — a full-stream OBS recording will fail. If your recording is big, extract just the audio track first (fast, lossless, produces a file ~10% the size):
-        <div style="margin-top: 8px; padding: 10px 12px; background: var(--ink); color: #86efac; border-radius: var(--r-sm); font-family: var(--mono); font-size: 12px; overflow-x: auto;">
-          ffmpeg -i "your-recording.mp4" -vn -c:a copy audio.m4a
+        <div class="notice info">
+          <strong>Setup instructions:</strong>
+          <ol>
+            <li>Install <a href="https://nodejs.org" target="_blank">Node.js (LTS)</a> if you don't have it</li>
+            <li>Download <code>proxy.js</code> (provided separately)</li>
+            <li>Save it anywhere (e.g., <code>Documents\stream-analyser</code>)</li>
+            <li>Open PowerShell in that folder and run <code>node proxy.js</code></li>
+            <li>Leave the PowerShell window open, paste the proxy URL below</li>
+          </ol>
         </div>
-        <div style="font-size: 12px; margin-top: 6px; color: var(--ink-dim);">
-          Don't have ffmpeg? Install with <code>winget install Gyan.FFmpeg</code> in PowerShell, or download from <a href="https://www.gyan.dev/ffmpeg/builds/" target="_blank">gyan.dev/ffmpeg/builds</a>.
+
+        <label style="margin-top: 14px;">Proxy URL</label>
+        <div class="row-3" style="margin-top: 4px;">
+          <input type="url" id="proxy-url" placeholder="http://127.0.0.1:7777" />
+          <button class="ghost" id="proxy-test">Test</button>
+          <button class="primary" id="proxy-save">Save</button>
         </div>
+        <div id="proxy-status" style="margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">Not configured</div>
       </div>
 
-      <button class="ghost" id="upload-audio-btn">Choose file (audio or video)</button>
-      <input type="file" id="audio-upload" accept="audio/*,video/*" style="display:none" />
+      <div id="audio-results-card" class="card" style="display:none;">
+        <h2>Audio echo &amp; doubling probe</h2>
+        <p class="subtitle">15 sampled segments from across the VOD, checked for audio doubling via autocorrelation.</p>
+        <div id="audio-results"></div>
+      </div>
+
+      <div class="card">
+        <h2>Upload a local recording</h2>
+        <p class="subtitle">If the live audio probe fails or you want to analyze your OBS recording directly, upload it here. More accurate since it's your original audio before Twitch re-encodes.</p>
+
+        <div class="notice warn" style="margin-bottom: 14px;">
+          <strong>Browser size limit:</strong> Chrome can't decode files larger than ~2 GB in a single pass — a full-stream OBS recording will fail. If your recording is big, extract just the audio track first (fast, lossless, produces a file ~10% the size):
+          <div style="margin-top: 8px; padding: 10px 12px; background: var(--ink); color: #86efac; border-radius: var(--r-sm); font-family: var(--mono); font-size: 12px; overflow-x: auto;">
+            ffmpeg -i "your-recording.mp4" -vn -c:a copy audio.m4a
+          </div>
+          <div style="font-size: 12px; margin-top: 6px; color: var(--ink-dim);">
+            Don't have ffmpeg? Install with <code>winget install Gyan.FFmpeg</code> in PowerShell, or download from <a href="https://www.gyan.dev/ffmpeg/builds/" target="_blank">gyan.dev/ffmpeg/builds</a>.
+          </div>
+        </div>
+
+        <button class="ghost" id="upload-audio-btn">Choose file (audio or video)</button>
+        <input type="file" id="audio-upload" accept="audio/*,video/*" style="display:none" />
+      </div>
+
     </div>
 
-    <div id="advanced-empty" class="empty" style="display:none;">
-      <h3>Run an analysis first</h3>
-      <p>Audio probe results will appear here after you analyze a VOD on the Dashboard tab.</p>
+    <!-- ── INNER PANEL: Advanced Stream Analysis ── -->
+    <div class="inner-panel" id="inner-stream-history">
+
+      <div class="card">
+        <h2>Your CCV tier</h2>
+        <p class="subtitle">Used to contextualise your metrics against streamers at a similar stage. Pick your typical concurrent viewer count.</p>
+        <div class="tier-selector" id="tier-selector">
+          <button class="tier-btn" data-tier="0-10">0–10 CCV</button>
+          <button class="tier-btn" data-tier="11-50">11–50 CCV</button>
+          <button class="tier-btn" data-tier="51-200">51–200 CCV</button>
+          <button class="tier-btn" data-tier="201-1000">201–1000 CCV</button>
+          <button class="tier-btn" data-tier="1000+">1000+ CCV</button>
+        </div>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);">Saved to your browser. Used in Session 2 when tier-specific benchmarks are added.</p>
+      </div>
+
+      <div class="card">
+        <h2>Stream history</h2>
+        <p class="subtitle">Last 50 analyses, saved in your browser. Closes when you clear browser data.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <span id="history-count" style="font-size: 13px; color: var(--ink-dim);">No analyses saved yet.</span>
+          <button class="ghost small" id="history-clear" style="display:none;">Clear history</button>
+        </div>
+        <div id="history-list"></div>
+      </div>
+
     </div>
+
   </div>
 
 </main>
@@ -2722,6 +2898,288 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
 }
 
 // ===============================================
+// Inner tab switching (Advanced Analysis)
+// ===============================================
+function switchInnerTab(name) {
+  document.querySelectorAll('.inner-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.inner === name);
+  });
+  document.querySelectorAll('.inner-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'inner-' + name);
+  });
+}
+document.querySelectorAll('.inner-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchInnerTab(btn.dataset.inner));
+});
+
+// ===============================================
+// CCV tier selector
+// ===============================================
+(function initTierSelector() {
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  const activeTier = saved.ccvTier || null;
+  document.querySelectorAll('.tier-btn').forEach(btn => {
+    if (btn.dataset.tier === activeTier) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const creds = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+      creds.ccvTier = btn.dataset.tier;
+      localStorage.setItem('vodDeskCreds', JSON.stringify(creds));
+    });
+  });
+})();
+
+// ===============================================
+// Persistence layer
+// ===============================================
+const HISTORY_KEY = 'streamAnalyserHistory';
+const MAX_HISTORY = 50;
+
+function saveAnalysis(record) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    // Deduplicate by vodId — replace if same VOD re-analysed
+    const filtered = existing.filter(r => r.vodId !== record.vodId);
+    filtered.unshift(record); // newest first
+    const trimmed = filtered.slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+    log(`Analysis saved to history (${trimmed.length} total).`, 'ok');
+  } catch (e) {
+    log('Could not save to history: ' + e.message, 'warn');
+  }
+}
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch { return []; }
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistoryList();
+}
+
+// ===============================================
+// Improvement notes (rule-based, no AI)
+// ===============================================
+// Takes the same inputs as generateFeedback and returns an ordered array of
+// plain-language "next stream, try this" action items, ranked by severity.
+function generateImprovementNotes(meta, comments, clips, audio) {
+  const notes = [];
+  const dur = meta.duration;
+  const cpm = dur > 0 ? comments.length / (dur / 60) : 0;
+
+  // Dead-air
+  const binSec = 60;
+  const nBins = Math.ceil(dur / binSec);
+  const bins = new Array(nBins).fill(0);
+  comments.forEach(c => { const i = Math.floor(c.t / binSec); if (i >= 0 && i < nBins) bins[i]++; });
+  const deadPct = nBins > 0 ? (bins.filter(b => b < 2).length / nBins) * 100 : 0;
+
+  // Unique ratio
+  const unique = new Set(comments.map(c => c.user)).size;
+  const uniqueRatio = comments.length > 0 ? unique / comments.length : 0;
+
+  // Audio
+  const echoCount = (audio && !audio.blocked && audio.results)
+    ? audio.results.filter(r => r.echo).length : -1;
+  const loudness = audio && audio.loudness;
+
+  // ── Priority 1: Audio issues (can't be fixed in post) ──
+  if (loudness && loudness.clippingPct > 0.5) {
+    notes.push({
+      priority: 1,
+      tag: 'bad',
+      text: `<strong>Fix clipping before your next stream.</strong> Your audio hit digital full-scale — that distortion is permanent and can't be fixed after the fact. In OBS, go to your mic source → Filters → add a Limiter set to -1 dB. This takes 30 seconds and prevents the problem entirely.`
+    });
+  }
+  if (echoCount >= 3) {
+    notes.push({
+      priority: 1,
+      tag: 'bad',
+      text: `<strong>Resolve the audio echo before going live again.</strong> Echo detected in ${echoCount} audio samples — likely your mic picking up your speakers. Switch to headphones, or in OBS check that desktop audio isn't routed twice (once through your capture card and once through your audio interface).`
+    });
+  }
+  if (loudness && loudness.meanDbFS < -28 && loudness.meanDbFS > -100) {
+    notes.push({
+      priority: 2,
+      tag: 'warn',
+      text: `<strong>Raise your mic level.</strong> Your average loudness was ${loudness.meanDbFS.toFixed(1)} dBFS — viewers will max out their volume to hear you, then get blasted switching tabs. Target -16 to -14 dBFS average. In OBS, slowly raise your mic gain filter until the meter sits in the yellow on a normal speaking voice.`
+    });
+  }
+
+  // ── Priority 2: Engagement issues ──
+  if (deadPct > 40) {
+    notes.push({
+      priority: 2,
+      tag: 'warn',
+      text: `<strong>Break up the quiet stretches.</strong> ${deadPct.toFixed(0)}% of your stream minutes had almost no chat. Before going live, write down 3–5 topics or questions to fall back on when the conversation dies. Asking chat a direct question ("what's everyone playing right now?") reliably triggers a response burst.`
+    });
+  } else if (deadPct > 20) {
+    notes.push({
+      priority: 3,
+      tag: 'warn',
+      text: `<strong>Reduce quiet minutes.</strong> About ${deadPct.toFixed(0)}% of your stream had minimal chat activity. Try narrating your gameplay or thought process during those stretches — it gives viewers something to respond to even when nothing dramatic is happening.`
+    });
+  }
+
+  if (cpm < 2 && deadPct <= 40) {
+    notes.push({
+      priority: 2,
+      tag: 'warn',
+      text: `<strong>Drive more chat interaction.</strong> Your chat velocity was ${cpm.toFixed(1)} msg/min — low for sustained viewer retention. The fastest lever: read chat messages aloud and respond to them by name. Viewers who feel acknowledged come back and bring others.`
+    });
+  }
+
+  if (uniqueRatio < 0.25 && comments.length > 50) {
+    notes.push({
+      priority: 3,
+      tag: 'warn',
+      text: `<strong>Chat is dominated by a few users.</strong> Only ${(uniqueRatio * 100).toFixed(0)}% unique chatters relative to total messages — a sign that a small group is carrying the conversation. Try acknowledging lurkers directly ("I know a lot of you are watching quietly — what brought you to the stream today?") to pull in the silent majority.`
+    });
+  }
+
+  // ── Priority 3: Structural ──
+  if (dur < 30 * 60) {
+    notes.push({
+      priority: 3,
+      tag: 'info',
+      text: `<strong>Stream longer.</strong> At ${fmtDurShort(dur)}, this session was too short for Twitch's recommendation algorithm to pick it up. Aim for at least 90 minutes — the algorithm starts surfacing channels to browse pages after sustained streaming time, not just quality.`
+    });
+  }
+
+  if (clips.length < 2) {
+    notes.push({
+      priority: 3,
+      tag: 'info',
+      text: `<strong>Create more "moment" opportunities.</strong> Only ${clips.length} clip-worthy moment${clips.length === 1 ? ' was' : 's were'} detected. Moments that generate clips tend to be: challenge attempts with a clear outcome, genuine reactions to game events, audience interaction payoffs, or anything with a build-up and a punchline. Plan at least one of these per hour.`
+    });
+  }
+
+  // Sort by priority ascending (1 = most urgent first)
+  notes.sort((a, b) => a.priority - b.priority);
+
+  // Return max 5 — keep it actionable, not overwhelming
+  return notes.slice(0, 5);
+}
+
+// ===============================================
+// History rendering
+// ===============================================
+function renderHistoryList() {
+  const history = loadHistory();
+  const listEl = document.getElementById('history-list');
+  const countEl = document.getElementById('history-count');
+  const clearBtn = document.getElementById('history-clear');
+  if (!listEl) return;
+
+  if (!history.length) {
+    countEl.textContent = 'No analyses saved yet. Run an analysis on the Dashboard to start building your history.';
+    clearBtn.style.display = 'none';
+    listEl.innerHTML = '';
+    return;
+  }
+
+  countEl.textContent = `${history.length} analysis${history.length === 1 ? '' : 'es'} saved.`;
+  clearBtn.style.display = '';
+
+  listEl.innerHTML = history.map((r, i) => {
+    const date = new Date(r.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const time = new Date(r.savedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+    // Status pills for key metrics
+    const metrics = [];
+    if (r.cpm != null) {
+      const cpmCls = r.cpm >= 5 ? 'ok' : r.cpm >= 2 ? '' : 'warn';
+      metrics.push(`<span class="history-metric ${cpmCls}">${r.cpm.toFixed(1)} msg/min</span>`);
+    }
+    if (r.deadPct != null) {
+      const dCls = r.deadPct < 15 ? 'ok' : r.deadPct > 40 ? 'bad' : 'warn';
+      metrics.push(`<span class="history-metric ${dCls}">${r.deadPct.toFixed(0)}% dead-air</span>`);
+    }
+    if (r.duration) {
+      metrics.push(`<span class="history-metric">${fmtDurShort(r.duration)}</span>`);
+    }
+    if (r.clipCount != null) {
+      metrics.push(`<span class="history-metric">${r.clipCount} clip${r.clipCount !== 1 ? 's' : ''}</span>`);
+    }
+    if (r.echoCount === 0) {
+      metrics.push(`<span class="history-metric ok">clean audio</span>`);
+    } else if (r.echoCount > 0) {
+      metrics.push(`<span class="history-metric bad">echo detected</span>`);
+    }
+
+    // Show top improvement note inline
+    const topNote = r.notes && r.notes[0];
+    const noteHTML = topNote
+      ? `<div style="font-size:13px;color:var(--ink-2);margin-top:8px;line-height:1.5;border-left:3px solid var(--border);padding-left:10px;">${topNote.text}</div>`
+      : '';
+
+    return `
+      <div class="history-item" data-history-idx="${i}">
+        <div class="history-item-head">
+          <span class="history-item-title">${escapeHTML(r.channelName || 'Unknown channel')} — ${escapeHTML(r.vodTitle || 'VOD')}</span>
+          <span class="history-item-date">${date} ${time}</span>
+        </div>
+        <div class="history-metrics">${metrics.join('')}</div>
+        ${noteHTML}
+        <div style="margin-top:10px;">
+          <button class="ghost small" data-expand-history="${i}" style="font-size:12px;">
+            ${r._expanded ? '▲ Collapse' : '▼ All notes'}
+          </button>
+        </div>
+        <div id="history-notes-${i}" style="display:${r._expanded ? '' : 'none'};">
+          ${renderImprovementNotesList(r.notes || [])}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Wire expand/collapse
+  listEl.querySelectorAll('button[data-expand-history]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = +btn.dataset.expandHistory;
+      const notesEl = document.getElementById('history-notes-' + idx);
+      const expanded = notesEl.style.display !== 'none';
+      notesEl.style.display = expanded ? 'none' : '';
+      btn.textContent = expanded ? '▼ All notes' : '▲ Collapse';
+    });
+  });
+}
+
+function renderImprovementNotesList(notes) {
+  if (!notes.length) return '<p style="color:var(--ink-faint);font-size:13px;padding:10px 0;">No improvement notes generated.</p>';
+  return `<div class="improvement-notes">
+    <h3>What to improve next stream</h3>
+    ${notes.map((n, i) => `
+      <div class="improvement-note">
+        <span class="improvement-note-num">${i + 1}</span>
+        <span>${n.text}</span>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// Wire history clear button
+document.addEventListener('click', e => {
+  if (e.target.id === 'history-clear') {
+    if (confirm('Clear all saved stream history? This cannot be undone.')) {
+      clearHistory();
+    }
+  }
+});
+
+// Render history when Advanced Stream Analysis tab is opened
+document.querySelectorAll('.inner-tab-btn').forEach(btn => {
+  if (btn.dataset.inner === 'stream-history') {
+    btn.addEventListener('click', renderHistoryList);
+  }
+});
+
+// ===============================================
 // MAIN
 // ===============================================
 
@@ -2918,6 +3376,14 @@ async function runAnalysis(vodId) {
       </li>
     `).join('');
 
+    // Render improvement notes
+    const improvNotes = generateImprovementNotes({ duration }, comments, clips, audio);
+    const improvPanel = $('#improvement-notes-panel');
+    if (improvNotes.length) {
+      improvPanel.innerHTML = renderImprovementNotesList(improvNotes);
+      improvPanel.style.display = '';
+    }
+
     // Audio results card on Advanced tab (only if audio was attempted)
     if (audio) {
       $('#audio-results-card').style.display = '';
@@ -2933,6 +3399,34 @@ async function runAnalysis(vodId) {
     if (isAudioUnlocked()) {
       runDenseAudioScan(id, duration, clips).catch(e => log('Dense audio scan failed: ' + e.message, 'warn'));
     }
+
+    // Step 6: Save analysis to history
+    const binSec60 = 60;
+    const nBins60 = Math.ceil(duration / binSec60);
+    const bins60 = new Array(nBins60).fill(0);
+    comments.forEach(c => { const i = Math.floor(c.t / binSec60); if (i >= 0 && i < nBins60) bins60[i]++; });
+    const deadPctSave = nBins60 > 0 ? (bins60.filter(b => b < 2).length / nBins60) * 100 : 0;
+    const cpmSave = duration > 0 ? comments.length / (duration / 60) : 0;
+    const uniqueSave = new Set(comments.map(c => c.user)).size;
+    const uniqueRatioSave = comments.length > 0 ? uniqueSave / comments.length : 0;
+    const echoCountSave = (audio && !audio.blocked && audio.results)
+      ? audio.results.filter(r => r.echo).length : -1;
+    const notes = generateImprovementNotes({ duration }, comments, clips, audio);
+    saveAnalysis({
+      vodId: id,
+      vodTitle: v.title || '(untitled)',
+      channelName,
+      savedAt: Date.now(),
+      duration,
+      cpm: cpmSave,
+      deadPct: deadPctSave,
+      uniqueRatio: uniqueRatioSave,
+      clipCount: clips.length,
+      echoCount: echoCountSave,
+      loudnessMean: audio && audio.loudness ? audio.loudness.meanDbFS : null,
+      notes,
+    });
+
     log('Analysis complete.', 'ok');
   } catch (e) {
     log('Error: ' + e.message, 'err');
