@@ -768,27 +768,6 @@
   }
   .caption-editor-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
-  .whisper-loading-bar {
-    height: 2px;
-    background: var(--surface-2);
-    position: relative;
-    overflow: hidden;
-    margin-top: 8px;
-    border-radius: 999px;
-  }
-  .whisper-loading-bar::after {
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0; left: -40%;
-    width: 40%;
-    background: var(--accent);
-    animation: indeterminate 1.4s infinite ease-in-out;
-  }
-  @keyframes indeterminate {
-    0% { left: -40%; }
-    100% { left: 100%; }
-  }
-
   /* HANDOFF */
   .handoff-grid {
     display: grid;
@@ -1102,77 +1081,64 @@
       <div id="vod-picker"></div>
     </div>
 
-    <div id="analysis-section" style="display:none;">
-      <div class="card">
-        <h2 id="analyzing-title">Analyzing…</h2>
-        <div class="status-bar" id="status-row">
-          <span class="pill" id="pill-meta">Metadata · idle</span>
-          <span class="pill" id="pill-chat">Chat replay · idle</span>
-          <span class="pill" id="pill-audio">Audio probe · locked</span>
-          <span class="pill" id="pill-clips">Clip scoring · idle</span>
-        </div>
-        <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
-      </div>
 
-      <div id="vod-section" style="display:none;">
+    <!-- SUB-TABS: appear below VOD picker once analysis runs -->
+    <div id="sub-tabs-bar" style="display:none; margin-top: 24px;">
+      <div style="display:flex; gap:0; border-bottom: 1px solid var(--border); margin-bottom: 0;">
+        <button class="sub-tab-btn active" data-sub="analysis" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);padding:10px 18px;cursor:pointer;border-bottom:2px solid var(--ink);margin-bottom:-1px;">Stream Analysis</button>
+        <button class="sub-tab-btn" data-sub="studio" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-dim);padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">Studio</button>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL: Stream Analysis — contains all analysis output -->
+    <div id="sub-panel-analysis" style="display:none;">
+      <div id="analysis-section" style="display:none; margin-top: 20px;">
         <div class="card">
-          <div class="vod-card">
-            <div class="vod-thumb" id="vod-thumb"><div class="placeholder">No thumbnail</div></div>
-            <div>
-              <h2 class="vod-title" id="vod-title">—</h2>
-              <div class="byline">
-                <strong id="vod-author">—</strong> · <span id="vod-date">—</span> · <span id="vod-game">—</span>
-              </div>
-              <div class="stats-grid">
-                <div class="stat">
-                  <div class="stat-label">Duration</div>
-                  <div class="stat-value" id="vod-duration">—</div>
+          <h2 id="analyzing-title">Analyzing…</h2>
+          <div class="status-bar" id="status-row">
+            <span class="pill" id="pill-meta">Metadata · idle</span>
+            <span class="pill" id="pill-chat">Chat replay · idle</span>
+            <span class="pill" id="pill-audio">Audio probe · locked</span>
+            <span class="pill" id="pill-clips">Clip scoring · idle</span>
+          </div>
+          <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div id="vod-section" style="display:none;">
+          <div class="card">
+            <div class="vod-card">
+              <div class="vod-thumb" id="vod-thumb"><div class="placeholder">No thumbnail</div></div>
+              <div>
+                <h2 class="vod-title" id="vod-title">—</h2>
+                <div class="byline">
+                  <strong id="vod-author">—</strong> · <span id="vod-date">—</span> · <span id="vod-game">—</span>
                 </div>
-                <div class="stat">
-                  <div class="stat-label">Views</div>
-                  <div class="stat-value" id="vod-views">—</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-label">Unique chatters</div>
-                  <div class="stat-value" id="vod-unique">—</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-label">Msgs / min</div>
-                  <div class="stat-value" id="vod-cpm">—</div>
+                <div class="stats-grid">
+                  <div class="stat"><div class="stat-label">Duration</div><div class="stat-value" id="vod-duration">—</div></div>
+                  <div class="stat"><div class="stat-label">Views</div><div class="stat-value" id="vod-views">—</div></div>
+                  <div class="stat"><div class="stat-label">Unique chatters</div><div class="stat-value" id="vod-unique">—</div></div>
+                  <div class="stat"><div class="stat-label">Msgs / min</div><div class="stat-value" id="vod-cpm">—</div></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div id="feedback-section" style="display:none;">
-        <div class="card">
-          <h2>Performance feedback</h2>
-          <p class="subtitle" id="feedback-intro">—</p>
-          <div class="chart-wrap">
-            <div class="chart-head"><span>Chat velocity over time</span><span id="chart-meta">—</span></div>
-            <svg class="chat-chart" id="chat-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
+        <div id="feedback-section" style="display:none;">
+          <div class="card">
+            <h2>Performance feedback</h2>
+            <p class="subtitle" id="feedback-intro">—</p>
+            <div class="chart-wrap">
+              <div class="chart-head"><span>Chat velocity over time</span><span id="chart-meta">—</span></div>
+              <svg class="chat-chart" id="chat-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
+            </div>
+            <div id="benchmark-card" style="display:none; margin-top: 18px;"></div>
+            <ul class="feedback-list" id="feedback-list" style="margin-top: 12px;"></ul>
           </div>
-          <div id="benchmark-card" style="display:none; margin-top: 18px;"></div>
-          <ul class="feedback-list" id="feedback-list" style="margin-top: 12px;"></ul>
         </div>
       </div>
     </div>
 
-    <!-- SUB-TABS: shown after analysis runs -->
-    <div id="sub-tabs-bar" style="display:none; margin: 24px 0 0;">
-      <div style="display:flex; gap:4px; border-bottom: 1px solid var(--border); padding-bottom: 0; margin-bottom: 24px;">
-        <button class="sub-tab-btn active" data-sub="analysis" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);padding:10px 16px;cursor:pointer;border-bottom:2px solid var(--ink);margin-bottom:-1px;">Stream Analysis</button>
-        <button class="sub-tab-btn" data-sub="studio" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-dim);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">Studio</button>
-      </div>
-    </div>
-
-    <!-- SUB-PANEL: Stream Analysis -->
-    <div id="sub-panel-analysis" style="display:none;"></div>
-
     <!-- SUB-PANEL: Studio (clips) -->
-    <div id="sub-panel-studio" style="display:none;">
+    <div id="sub-panel-studio" style="display:none; margin-top: 20px;">
       <div id="studio-content" style="display:none;">
         <p id="clips-intro" style="color: var(--ink-dim); margin-bottom: 20px;">—</p>
         <div id="clips-list"></div>
@@ -1183,7 +1149,7 @@
       </div>
     </div>
 
-    <div id="dashboard-empty" class="empty">
+    <div id="dashboard-empty" class="empty" style="margin-top: 20px;">
       <h3>No analysis yet</h3>
       <p>Enter a channel name above to load their recent VODs, or paste a VOD URL directly.</p>
     </div>
@@ -1193,27 +1159,7 @@
   <div class="view" id="view-advanced">
     <div class="view-header">
       <h1>Advanced Analysis</h1>
-      <p>Audio echo detection, Whisper auto-captions, and audio-spike clip scoring. Requires a local proxy.</p>
-    </div>
-
-    <div class="card">
-      <h2>OpenAI API key (for captions)</h2>
-      <p class="subtitle">Auto-captions use OpenAI's Whisper API. Cheap (~$0.003 per 30-second clip) and very accurate. Your key is stored only in this browser's localStorage — never sent anywhere except OpenAI.</p>
-
-      <div class="notice warn" style="margin-bottom: 14px;">
-        <strong>Security note:</strong> API keys in browser storage are vulnerable to XSS. This is fine for a personal tool you run locally. Don't paste your key on a shared machine. Create a dedicated key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a> and set a spending limit.
-      </div>
-
-      <label>OpenAI API key</label>
-      <div class="row-3" style="margin-top: 4px;">
-        <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
-        <button class="ghost" id="openai-test">Test</button>
-        <button class="primary" id="openai-save">Save</button>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-        <div id="openai-status" style="font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">Not configured</div>
-        <button class="link" id="openai-clear" style="font-size: 12px;">Clear key</button>
-      </div>
+      <p>Audio echo detection and audio-spike clip scoring. Requires a local proxy.</p>
     </div>
 
     <div class="card">
@@ -1318,13 +1264,6 @@ function switchSubTab(name) {
     const el = document.getElementById('sub-panel-' + panel);
     if (el) el.style.display = panel === name ? '' : 'none';
   });
-  // vod-section and feedback-section live inside analysis-section (not sub-panel-analysis)
-  // show/hide them based on active sub-tab
-  const inAnalysis = name === 'analysis';
-  const vs = document.getElementById('vod-section');
-  const fs = document.getElementById('feedback-section');
-  if (vs && vs.dataset.hasContent === '1') vs.style.display = inAnalysis ? '' : 'none';
-  if (fs && fs.dataset.hasContent === '1') fs.style.display = inAnalysis ? '' : 'none';
 }
 window.switchSubTab = switchSubTab;
 
@@ -1731,73 +1670,6 @@ function updatePillAudio() {
     setPill('pill-audio', 'Audio · ready', '');
   }
 }
-
-// ---- OpenAI API key wiring ----
-function updateOpenAIStatus(text, ok) {
-  const el = $('#openai-status');
-  if (!el) return;
-  el.textContent = text;
-  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--danger)' : 'var(--ink-dim)';
-}
-(function restoreOpenAIKey() {
-  const k = getOpenAIKey();
-  if (k) {
-    // Show only first 7 + last 4 chars — don't reveal the full key on reload
-    const masked = k.length > 15 ? k.slice(0, 7) + '…' + k.slice(-4) : '(saved)';
-    $('#openai-key').value = k;
-    updateOpenAIStatus(`Saved: ${masked} (click Test to verify)`, null);
-  }
-})();
-$('#openai-save').addEventListener('click', () => {
-  const key = $('#openai-key').value.trim();
-  if (!key) {
-    updateOpenAIStatus('Enter a key first', false);
-    return;
-  }
-  if (!key.startsWith('sk-')) {
-    updateOpenAIStatus('Key should start with "sk-". Check you pasted a full OpenAI key.', false);
-    return;
-  }
-  setOpenAIKey(key);
-  const masked = key.slice(0, 7) + '…' + key.slice(-4);
-  updateOpenAIStatus(`✓ Saved: ${masked}`, true);
-  log('OpenAI API key saved.', 'ok');
-});
-$('#openai-clear').addEventListener('click', () => {
-  if (!confirm('Clear the saved OpenAI API key? You will need to paste it again to use captions.')) return;
-  setOpenAIKey('');
-  $('#openai-key').value = '';
-  updateOpenAIStatus('Cleared', null);
-  log('OpenAI API key cleared.', 'ok');
-});
-$('#openai-test').addEventListener('click', async () => {
-  const key = $('#openai-key').value.trim();
-  if (!key) { updateOpenAIStatus('Enter a key first', false); return; }
-  updateOpenAIStatus('Testing…', null);
-  try {
-    // Cheapest verification: list models (doesn't consume transcription credits)
-    const r = await fetch('https://api.openai.com/v1/models', {
-      headers: { 'Authorization': 'Bearer ' + key }
-    });
-    if (r.status === 401) {
-      updateOpenAIStatus('✗ Invalid key (401). Check it at platform.openai.com/api-keys.', false);
-      return;
-    }
-    if (!r.ok) {
-      updateOpenAIStatus(`✗ HTTP ${r.status} — try again or check platform.openai.com/status`, false);
-      return;
-    }
-    const data = await r.json();
-    const hasWhisper = (data.data || []).some(m => m.id === 'whisper-1');
-    if (hasWhisper) {
-      updateOpenAIStatus('✓ Key valid, whisper-1 available', true);
-    } else {
-      updateOpenAIStatus('✓ Key valid (but whisper-1 not listed — transcription may still work)', true);
-    }
-  } catch (e) {
-    updateOpenAIStatus(`✗ ${e.message}`, false);
-  }
-});
 
 // Upload-your-own-recording fallback (lives on Advanced tab now)
 $('#upload-audio-btn').addEventListener('click', () => $('#audio-upload').click());
@@ -2256,15 +2128,14 @@ function renderClips(clips, vodId, channelName, vodDuration) {
         <div class="clip-chat-sample">${sampleHTML || '<em>No sample</em>'}</div>
 
         <div class="clip-actions">
-          <button class="primary" style="padding: 9px 16px;" data-open-editor="${i}">Open in Editor ▸</button>
-          <button class="ghost small" data-caption-gen="tiktok" data-idx="${i}">TikTok post text</button>
-          <button class="ghost small" data-caption-gen="instagram" data-idx="${i}">Instagram post text</button>
-          <button class="ghost small" data-caption-gen="youtube" data-idx="${i}">YT Shorts post text</button>
+          <a href="https://www.twitch.tv/videos/${vodId}?t=${Math.floor(c.start/3600)}h${Math.floor(c.start%3600/60)}m${Math.floor(c.start%60)}s" target="_blank" style="text-decoration:none;">
+            <button class="ghost small" title="Open VOD at this timestamp in Twitch">▶ Open at ${fmtDur(c.start)}</button>
+          </a>
+          <button class="primary" style="padding: 9px 16px;" data-open-editor="${i}">Preview ▸</button>
         </div>
 
         <div class="clip-editor" id="editor-${i}">
-          <h4>Preview &amp; trim</h4>
-          <div class="clip-preview-wrapper open" id="preview-${i}">
+          <div class="clip-preview-wrapper" id="preview-${i}">
             <iframe
               title="VOD preview at ${fmtDur(start)}"
               allowfullscreen="true"
@@ -2274,7 +2145,7 @@ function renderClips(clips, vodId, channelName, vodDuration) {
             </iframe>
           </div>
 
-          <div class="timeline-row">
+          <div class="timeline-row" style="margin-top: 12px;">
             <span class="timeline-label">Start</span>
             <div class="timeline-track" data-timeline="${i}">
               <div class="timeline-fill"></div>
@@ -2286,125 +2157,85 @@ function renderClips(clips, vodId, channelName, vodDuration) {
           <div class="timeline-row">
             <span class="timeline-value" id="start-value-${i}">${fmtDur(start)}</span>
             <div class="timeline-hint">
-              Drag handles to adjust · duration mid-track · Twitch clips cap at 60s
-              <button class="ghost small" id="reload-preview-${i}" style="display:none; margin-left: 10px; padding: 3px 8px; font-size: 9px;">↻ Reload preview at new start</button>
+              Drag handles to fine-tune · Twitch clips cap at 60s
+              <button class="ghost small" id="reload-preview-${i}" style="display:none; margin-left: 10px; padding: 3px 8px; font-size: 9px;">↻ Reload at new start</button>
             </div>
             <span class="timeline-value" id="dur-value-${i}">${end - start}s</span>
           </div>
-
-          <h4 style="margin-top: 20px;">Auto-captions (Whisper, local)</h4>
-          <div id="captions-${i}" class="captions-panel">
-            <div class="captions-head"><span>Captions not generated yet</span></div>
-            <div class="captions-text" style="color: var(--ink-faint); font-style: italic;">Click Generate below to transcribe this window with OpenAI Whisper (~$0.003 per 30-second clip). Requires an API key in Advanced Analysis.</div>
-          </div>
-          <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="ghost small" data-gen-captions="${i}">Generate captions</button>
-            <button class="ghost small" data-edit-captions="${i}" style="display:none;">Edit captions</button>
-          </div>
-          <textarea class="caption-editor-textarea" id="caption-edit-${i}" style="display:none; margin-top: 10px;" placeholder="Captions will appear here after generation. You can edit them freely before exporting."></textarea>
-
-          <h4 style="margin-top: 22px;">Confirm &amp; produce clip</h4>
-          <div style="font-family: var(--serif); font-size: 14px; color: var(--ink-2); margin-bottom: 10px; line-height: 1.5;">
-            When you're happy with the trim and captions, create the horizontal Twitch clip. Then use the handoff tiles to send it to a vertical editor (CapCut, Kapwing, or Opus Clip) for TikTok/Reels/Shorts.
-          </div>
-          <button class="primary" data-confirm-clip="${i}">Create Twitch Clip (horizontal)</button>
-
-          <div class="clip-confirmed-banner" id="confirmed-${i}"></div>
         </div>
-
-        <div class="caption-box" id="caption-${i}"></div>
       </div>
     `;
   }).join('');
 
-  // Wire editor open/close
+  // Wire editor open/close (manual toggle)
+  function openEditor(idx) {
+    // Close any other open editors first
+    document.querySelectorAll('.clip-editor.open').forEach(ed => {
+      const otherIdx = +ed.closest('.clip-item').dataset.idx;
+      if (otherIdx !== idx) {
+        ed.classList.remove('open');
+        const iframe = ed.querySelector('iframe');
+        if (iframe) iframe.src = '';
+        const btn = document.querySelector(`button[data-open-editor="${otherIdx}"]`);
+        if (btn) btn.textContent = 'Preview ▸';
+      }
+    });
+    const editor = $('#editor-' + idx);
+    editor.classList.add('open');
+    loadClipPreview(idx);
+    initTimeline(idx);
+    const btn = document.querySelector(`button[data-open-editor="${idx}"]`);
+    if (btn) btn.textContent = '◾ Close preview';
+  }
+
+  function closeEditor(idx) {
+    const editor = $('#editor-' + idx);
+    if (!editor) return;
+    editor.classList.remove('open');
+    const iframe = editor.querySelector('iframe');
+    if (iframe) iframe.src = '';
+    const btn = document.querySelector(`button[data-open-editor="${idx}"]`);
+    if (btn) btn.textContent = 'Preview ▸';
+  }
+
   document.querySelectorAll('button[data-open-editor]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = +btn.dataset.openEditor;
       const editor = $('#editor-' + idx);
-      const state = window.__clipState.get(idx);
-      const isOpen = editor.classList.contains('open');
-      if (isOpen) {
-        editor.classList.remove('open');
-        const iframe = editor.querySelector('iframe');
-        iframe.src = '';
-        btn.textContent = 'Open in Editor ▸';
+      if (editor.classList.contains('open')) {
+        closeEditor(idx);
       } else {
-        editor.classList.add('open');
-        loadClipPreview(idx);
-        initTimeline(idx);
-        btn.textContent = '◾ Close editor';
-        editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        openEditor(idx);
       }
     });
   });
 
-  // Wire caption generation
-  document.querySelectorAll('button[data-gen-captions]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const idx = +btn.dataset.genCaptions;
-      const state = window.__clipState.get(idx);
-      btn.disabled = true;
-      btn.textContent = 'Working…';
-      try {
-        await generateCaptionsForClip(idx, state.start, state.end - state.start);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Regenerate captions';
-      }
-    });
-  });
+  // Auto-open first editor immediately
+  if (clips.length > 0) {
+    setTimeout(() => openEditor(0), 120);
+  }
 
-  // Wire edit-captions toggle
-  document.querySelectorAll('button[data-edit-captions]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = +btn.dataset.editCaptions;
-      const textarea = $('#caption-edit-' + idx);
-      const panel = $('#captions-' + idx);
-      if (textarea.style.display === 'none') {
-        textarea.style.display = '';
-        textarea.value = window.__clipState.get(idx).captionsText || '';
-        panel.style.display = 'none';
-        btn.textContent = 'Done editing';
-        textarea.addEventListener('input', () => {
-          window.__clipState.get(idx).captionsText = textarea.value;
-        });
-      } else {
-        textarea.style.display = 'none';
-        panel.style.display = '';
-        // Update displayed captions
-        const text = textarea.value;
-        panel.querySelector('.captions-text').textContent = text;
-        btn.textContent = 'Edit captions';
-      }
-    });
-  });
-
-  // Wire confirm-clip button (creates Twitch clip URL + handoff tiles)
-  document.querySelectorAll('button[data-confirm-clip]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = +btn.dataset.confirmClip;
-      confirmClip(idx);
-    });
-  });
-
-  // Wire social post-text generators
-  document.querySelectorAll('button[data-caption-gen]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const platform = btn.dataset.captionGen;
-      const idx = +btn.dataset.idx;
-      const clip = clips[idx];
-      const box = $('#caption-' + idx);
-      box.innerHTML = captionHTML(platform, clip, channelName);
-      box.classList.add('open');
-      box.querySelectorAll('button[data-copy]').forEach(b => {
-        b.addEventListener('click', () => {
-          const txt = box.querySelector('textarea').value;
-          navigator.clipboard.writeText(txt).then(() => { b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = 'Copy Caption', 2000); });
-        });
+  // IntersectionObserver: as user scrolls, close the leaving clip and open the entering one
+  const clipItems = document.querySelectorAll('.clip-item');
+  if ('IntersectionObserver' in window && clipItems.length > 1) {
+    const ioOptions = { root: null, rootMargin: '-30% 0px -30% 0px', threshold: 0 };
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const idx = +entry.target.dataset.idx;
+        if (entry.isIntersecting) {
+          // Only auto-open if no editor was manually kept open
+          const anyOpen = [...document.querySelectorAll('.clip-editor.open')].some(ed => {
+            return +ed.closest('.clip-item').dataset.idx !== idx;
+          });
+          if (anyOpen || !entry.target.querySelector('.clip-editor.open')) {
+            openEditor(idx);
+          }
+        }
       });
-    });
-  });
+    }, ioOptions);
+    clipItems.forEach(item => io.observe(item));
+  }
+
 }
 
 // Load the Twitch player iframe for a clip based on current state.start
@@ -2524,318 +2355,6 @@ function initTimeline(idx) {
 }
 
 // Confirm clip: produce the Twitch clip URL and show handoff tiles
-function confirmClip(idx) {
-  const state = window.__clipState.get(idx);
-  const t = state.start;
-  const hrs = Math.floor(t/3600);
-  const mins = Math.floor(t%3600/60);
-  const secs = t%60;
-  const vodLink = `https://www.twitch.tv/videos/${state.vodId}?t=${hrs}h${mins}m${secs}s`;
-  const clipCreateLink = state.channelName
-    ? `https://clips.twitch.tv/create?channel=${encodeURIComponent(state.channelName)}&videoID=${state.vodId}&offset=${t}`
-    : vodLink;
-  const captionsForHandoff = state.captionsText || '(no captions — generate them in the editor)';
-
-  const banner = $('#confirmed-' + idx);
-  banner.classList.add('open');
-  banner.innerHTML = `
-    <strong>Ready to produce.</strong> Twitch creates the horizontal clip directly from your trim points (note: Twitch caps clips at 60 seconds, full width). For a vertical version, hand it off to one of the editors below after you create the Twitch clip.<br><br>
-
-    <strong>Step 1 · Create the Twitch horizontal clip:</strong>
-    <div style="margin: 8px 0;"><a href="${clipCreateLink}" target="_blank"><button class="primary" style="padding: 10px 18px;">Open Twitch Clip Editor →</button></a></div>
-    <div style="font-size: 12px; color: var(--ink-dim);">Opens Twitch's clip editor at <code>${fmtDur(t)}</code>. Confirm the title, click Publish. Copy the clip URL back here for step 2.</div>
-
-    <div style="margin-top: 18px; font-size: 13px;"><strong style="color: var(--ink);">Step 2 · Paste the clip URL for vertical handoff:</strong></div>
-    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 6px;">
-      <input type="url" id="clipurl-${idx}" placeholder="https://clips.twitch.tv/..." style="font-family: var(--mono); font-size: 12px;" />
-      <button class="ghost small" id="clipurl-save-${idx}">Save</button>
-    </div>
-
-    <div style="margin-top: 18px; font-size: 13px;"><strong style="color: var(--ink);">Step 3 · Send to a vertical editor:</strong></div>
-    <div class="handoff-grid">
-      <a class="handoff-tile" id="handoff-capcut-${idx}" href="https://www.capcut.com/editor" target="_blank">
-        <div class="tile-platform">CapCut</div>
-        <div class="tile-desc">Best for mobile edits. Paste the clip URL, use Auto-Caption (good), and Auto-Reframe 9:16.</div>
-      </a>
-      <a class="handoff-tile" id="handoff-kapwing-${idx}" href="https://www.kapwing.com/studio" target="_blank">
-        <div class="tile-platform">Kapwing</div>
-        <div class="tile-desc">Web-based. Paste clip URL, Smart Cut to 9:16, adds burned captions from the text you've saved.</div>
-      </a>
-      <a class="handoff-tile" id="handoff-opus-${idx}" href="https://clipanything.opus.pro" target="_blank">
-        <div class="tile-platform">Opus Clip</div>
-        <div class="tile-desc">AI-automated. Paste your full VOD URL; it generates vertical clips with captions automatically.</div>
-      </a>
-    </div>
-
-    <div style="margin-top: 18px; font-size: 13px; color: var(--ink-dim);"><strong>Captions to paste into the editor:</strong></div>
-    <textarea readonly style="width: 100%; margin-top: 6px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); font-family: var(--serif); font-size: 13px; min-height: 70px; color: var(--ink);">${escapeHTML(captionsForHandoff)}</textarea>
-    <button class="ghost small" id="copy-caps-${idx}" style="margin-top: 6px;">Copy captions</button>
-  `;
-
-  // Wire copy captions
-  $('#copy-caps-' + idx).addEventListener('click', () => {
-    navigator.clipboard.writeText(state.captionsText || '').then(() => {
-      const b = $('#copy-caps-' + idx);
-      b.textContent = 'Copied ✓';
-      setTimeout(() => b.textContent = 'Copy captions', 2000);
-    });
-  });
-
-  // Wire clip URL save — once saved, attach to handoff tile links so the user lands on the editor with the URL ready in their clipboard
-  $('#clipurl-save-' + idx).addEventListener('click', () => {
-    const url = $('#clipurl-' + idx).value.trim();
-    if (!url) return;
-    state.finalClipUrl = url;
-    navigator.clipboard.writeText(url).then(() => {
-      $('#clipurl-save-' + idx).textContent = 'URL copied ✓';
-      setTimeout(() => $('#clipurl-save-' + idx).textContent = 'Save', 2000);
-    });
-  });
-
-  banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// ===============================================
-// Captions (Whisper WASM)
-// ===============================================
-// Holds the VOD's HLS media segments + metadata so we can fetch & decode
-// audio for a specific clip timestamp without re-probing the whole thing.
-window.__captionAudioSource = null;
-// { playlistSegs: [{uri, duration}], variantBaseUrl, audioContext, cachedSegments: Map<idx, AudioBuffer> }
-
-// ===== OpenAI API key helpers =====
-function getOpenAIKey() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
-    return saved.openaiKey || '';
-  } catch { return ''; }
-}
-function setOpenAIKey(key) {
-  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
-  if (key) saved.openaiKey = key;
-  else delete saved.openaiKey;
-  localStorage.setItem('vodDeskCreds', JSON.stringify(saved));
-}
-// Whisper API pricing: $0.006 / minute. Estimate cost for a given audio duration.
-function estimateWhisperCost(seconds) {
-  const minutes = seconds / 60;
-  return minutes * 0.006;
-}
-
-// ===== WAV encoder =====
-// Takes a Float32Array of mono audio at given sample rate, returns a Blob of WAV bytes.
-// OpenAI accepts WAV, MP3, M4A, etc. — WAV is simplest since we already have raw PCM.
-function floatTo16BitPCMWav(float32, sampleRate) {
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  const byteRate = sampleRate * numChannels * bitsPerSample / 8;
-  const blockAlign = numChannels * bitsPerSample / 8;
-  const dataLength = float32.length * 2; // 2 bytes per sample
-  const buffer = new ArrayBuffer(44 + dataLength);
-  const view = new DataView(buffer);
-
-  // RIFF header
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + dataLength, true);
-  writeString(view, 8, 'WAVE');
-  // fmt chunk
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);            // chunk size
-  view.setUint16(20, 1, true);             // PCM format
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitsPerSample, true);
-  // data chunk
-  writeString(view, 36, 'data');
-  view.setUint32(40, dataLength, true);
-
-  // PCM samples (clamped + scaled to int16)
-  let offset = 44;
-  for (let i = 0; i < float32.length; i++, offset += 2) {
-    const s = Math.max(-1, Math.min(1, float32[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-  }
-  return new Blob([buffer], { type: 'audio/wav' });
-}
-function writeString(view, offset, str) {
-  for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-}
-
-// ===== OpenAI Whisper transcription =====
-// POSTs a multipart form to OpenAI's audio/transcriptions endpoint.
-// Model: whisper-1. Response format: verbose_json (gives us segment timestamps).
-async function transcribeWithOpenAI(wavBlob, apiKey) {
-  const formData = new FormData();
-  formData.append('file', wavBlob, 'clip.wav');
-  formData.append('model', 'whisper-1');
-  formData.append('response_format', 'verbose_json');
-
-  let response;
-  try {
-    response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + apiKey },
-      body: formData
-    });
-  } catch (networkErr) {
-    throw new Error('Network error reaching OpenAI — check your internet connection. (' + networkErr.message + ')');
-  }
-
-  if (!response.ok) {
-    let detail = '';
-    try {
-      const err = await response.json();
-      detail = err.error?.message || JSON.stringify(err).slice(0, 200);
-    } catch {
-      detail = await response.text().catch(() => '(no body)');
-    }
-    // Map common statuses to actionable messages
-    if (response.status === 401) {
-      throw new Error('Invalid API key. Check the key you saved in Advanced Analysis → OpenAI API key. Create a new one at platform.openai.com/api-keys if needed.');
-    }
-    if (response.status === 429) {
-      throw new Error('Rate limit or quota exceeded. Either you hit your per-minute limit (wait ~60s) or your account is out of credits. Details: ' + detail);
-    }
-    if (response.status === 413) {
-      throw new Error('Audio file too large for OpenAI (25MB limit). This is unusual for a single clip — try a shorter window.');
-    }
-    if (response.status >= 500) {
-      throw new Error('OpenAI server error (' + response.status + '). Usually transient — try again in a moment. Details: ' + detail);
-    }
-    throw new Error('OpenAI API error ' + response.status + ': ' + detail);
-  }
-
-  return response.json();
-}
-
-async function generateCaptionsForClip(idx, startSec, durationSec) {
-  const panel = $('#captions-' + idx);
-  panel.classList.add('open');
-  panel.classList.add('loading');
-  panel.style.display = '';
-
-  // If we have live state (from the editor), use that instead of args
-  if (window.__clipState && window.__clipState.has(idx)) {
-    const s = window.__clipState.get(idx);
-    startSec = s.start;
-    durationSec = s.end - s.start;
-  }
-
-  panel.innerHTML = `
-    <div class="captions-head"><span>Auto-captions (OpenAI Whisper API)</span></div>
-    <div class="captions-text">Preparing…</div>
-    <div class="whisper-loading-bar"></div>
-  `;
-
-  try {
-    // 1. Check API key
-    const apiKey = getOpenAIKey();
-    if (!apiKey) {
-      throw new Error('No OpenAI API key saved. Go to Advanced Analysis → OpenAI API key to add one.');
-    }
-
-    // 2. Check audio source
-    const source = window.__currentAudioSource;
-    if (!source) throw new Error('Audio source not ready. Run the analysis again, and make sure the audio proxy is configured and the probe succeeded.');
-
-    // 3. Extract audio slice at 16kHz mono (with small context padding)
-    panel.querySelector('.captions-text').textContent = 'Fetching audio for this clip…';
-    const captionSec = Math.min(durationSec + 5, 45);
-    const paddedStart = Math.max(0, startSec - 2);
-    const audio = await AudioProbe.extractAudioWindow(source, paddedStart, captionSec);
-
-    // 4. Encode as WAV for upload
-    panel.querySelector('.captions-text').textContent = 'Encoding audio (WAV)…';
-    const wav = floatTo16BitPCMWav(audio, 16000);
-    const sizeMB = (wav.size / 1024 / 1024).toFixed(2);
-    const cost = estimateWhisperCost(captionSec);
-    log(`Sending ${sizeMB} MB WAV (${captionSec.toFixed(0)}s audio) to OpenAI Whisper. Est. cost: $${cost.toFixed(4)}`);
-
-    // 5. Transcribe
-    panel.querySelector('.captions-text').textContent = `Transcribing via OpenAI (~$${cost.toFixed(4)} for this clip)…`;
-    const result = await transcribeWithOpenAI(wav, apiKey);
-
-    // 6. Format output — verbose_json gives us segments with start/end times
-    panel.classList.remove('loading');
-    const text = (result.text || '').trim();
-    const segments = result.segments || [];
-    let formatted = '';
-    if (segments.length > 1) {
-      formatted = segments.map(seg => {
-        // Segment times are relative to the audio we sent. Shift by paddedStart to get VOD timestamp.
-        const absTime = paddedStart + (seg.start || 0);
-        return `[${absTime.toFixed(1)}s] ${(seg.text || '').trim()}`;
-      }).join('\n');
-    } else {
-      formatted = text;
-    }
-
-    // 7. Save to clip state for editing + handoff
-    if (window.__clipState && window.__clipState.has(idx)) {
-      window.__clipState.get(idx).captionsText = formatted;
-    }
-    panel.innerHTML = `
-      <div class="captions-head">
-        <span>Auto-captions · OpenAI Whisper · $${cost.toFixed(4)}</span>
-        <button class="ghost small" id="copy-captions-${idx}">Copy</button>
-      </div>
-      <div class="captions-text">${escapeHTML(formatted) || '<em>No speech detected in this window.</em>'}</div>
-    `;
-    const copyBtn = $('#copy-captions-' + idx);
-    if (copyBtn) copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(formatted).then(() => {
-        copyBtn.textContent = 'Copied ✓';
-        setTimeout(() => copyBtn.textContent = 'Copy', 2000);
-      });
-    });
-    // Reveal the Edit captions button
-    const editBtn = document.querySelector(`button[data-edit-captions="${idx}"]`);
-    if (editBtn) editBtn.style.display = '';
-    log(`Captions generated for clip ${idx + 1}.`, 'ok');
-  } catch (e) {
-    panel.classList.remove('loading');
-    panel.innerHTML = `
-      <div class="captions-head"><span>Auto-captions · failed</span></div>
-      <div class="captions-text" style="color: var(--danger); font-style: normal;">${escapeHTML(e.message)}</div>
-    `;
-    log('Caption generation failed: ' + e.message, 'err');
-  }
-}
-
-function captionHTML(platform, clip, channelName) {
-  const reasons = clipReason(clip).replace(/<[^>]+>/g, '');
-  const channel = channelName || 'the stream';
-  let caption, platformName, uploadUrl;
-
-  if (platform === 'tiktok') {
-    platformName = 'TikTok';
-    uploadUrl = 'https://www.tiktok.com/upload';
-    caption = `POV: ${channel} ${clip.laughs > 3 ? 'had us crying laughing' : clip.hypeEmotes > 3 ? 'went crazy' : 'popped off'} 😭\n\ncatch full streams live on twitch\n\n#twitchclips #twitchstreamer #gaming #viral #fyp #streamer #gamingclips #funny #twitchhighlights #clips`;
-  } else if (platform === 'instagram') {
-    platformName = 'Instagram Reels';
-    uploadUrl = 'https://www.instagram.com';
-    caption = `${clip.laughs > 3 ? 'not us dying at this 💀' : clip.hypeEmotes > 3 ? 'absolute cinema 🎬' : 'unreal moment'}\n\n🎮 full VOD on twitch\n\n.\n.\n.\n#twitch #twitchclips #gaming #gamingmemes #streamer #twitchstreamer #reels #gamingreels #viral #explore #gamer #gamerlife #clipoftheday`;
-  } else {
-    platformName = 'YouTube Shorts';
-    uploadUrl = 'https://www.youtube.com/upload';
-    caption = `${channel} ${clip.laughs > 3 ? 'couldn\'t stop laughing' : clip.hypeEmotes > 3 ? 'was in disbelief' : 'had a moment'} #shorts\n\nCatch me live on Twitch — full stream in description\n\n#twitch #twitchclips #gaming #shortsvideo #youtubeshorts #streamer #funny #gamingshorts`;
-  }
-
-  const chars = caption.length;
-  return `
-    <div class="platform-label">${platformName} Caption</div>
-    <textarea>${escapeHTML(caption)}</textarea>
-    <div class="caption-foot">
-      <span>${chars} chars</span>
-      <div style="display: flex; gap: 8px;">
-        <button class="ghost small" data-copy>Copy Caption</button>
-        <a href="${uploadUrl}" target="_blank"><button class="ghost small">Open ${platformName}</button></a>
-      </div>
-    </div>
-  `;
-}
 
 // ===============================================
 
@@ -3035,15 +2554,16 @@ async function runAnalysis(vodId) {
   document.getElementById('log').innerHTML = '';
   // Reveal analysis section, hide empty state
   $('#dashboard-empty').style.display = 'none';
+  $('#sub-tabs-bar').style.display = '';
+  $('#sub-panel-analysis').style.display = '';
+  $('#sub-panel-studio').style.display = 'none';
   $('#analysis-section').style.display = '';
   $('#vod-section').style.display = 'none';
   $('#feedback-section').style.display = 'none';
   $('#audio-results-card').style.display = 'none';
   $('#studio-content').style.display = 'none';
   $('#studio-empty').style.display = '';
-  $('#sub-tabs-bar').style.display = 'none';
-  $('#sub-panel-analysis').style.display = 'none';
-  $('#sub-panel-studio').style.display = 'none';
+  switchSubTab('analysis');
 
   // Reset caption audio source for the new VOD
   window.__currentAudioSource = null;
@@ -3084,7 +2604,6 @@ async function runAnalysis(vodId) {
       $('#vod-thumb').innerHTML = '<div class="placeholder">No thumbnail</div>';
     }
     $('#vod-section').style.display = '';
-    document.getElementById('vod-section').dataset.hasContent = '1';
 
     // Step 2: Chat
     setPill('pill-chat', 'Chat · fetching', 'busy');
@@ -3106,7 +2625,6 @@ async function runAnalysis(vodId) {
     $('#vod-cpm').textContent = duration ? (comments.length / (duration/60)).toFixed(1) : '—';
     drawChart(comments, duration);
     $('#feedback-section').style.display = '';
-    document.getElementById('feedback-section').dataset.hasContent = '1';
     setProgress(55);
 
     // Step 3: Audio probe — gated behind login + proxy
@@ -3185,8 +2703,7 @@ async function runAnalysis(vodId) {
     $('#studio-empty').style.display = 'none';
     $('#studio-content').style.display = '';
     // Reveal sub-tab bar and default to Stream Analysis
-    $('#sub-tabs-bar').style.display = '';
-    switchSubTab('analysis');
+
     $('#clips-intro').innerHTML = `<strong>${clips.length}</strong> moments ranked by chat velocity + hype/laugh/emote density${audioMoments.length ? ' + audio excitement peaks' : ''}. Click <em>Open in Editor</em> to preview, trim, add captions, and generate a clip.`;
 
     // Render feedback
