@@ -1037,69 +1037,7 @@
   .inner-panel { display: none; }
   .inner-panel.active { display: block; }
 
-  /* PRE-STREAM CHECKLIST MODAL */
-  .checklist-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 100;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 16px 40px;
-    overflow-y: auto;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-  }
-  .checklist-overlay[hidden] { display: none; }
-  .checklist-modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-lg);
-    width: 100%;
-    max-width: 640px;
-    box-shadow: 0 20px 60px -10px rgba(0,0,0,0.25);
-    animation: checklist-in 0.2s ease;
-  }
-  @keyframes checklist-in {
-    from { opacity: 0; transform: translateY(-12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .checklist-header {
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .checklist-header h2 {
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-    margin: 0;
-  }
-  .checklist-header .checklist-subtitle {
-    font-size: 13px;
-    color: var(--ink-dim);
-    margin-top: 2px;
-  }
-  .checklist-close {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    color: var(--ink-dim);
-    font-size: 18px;
-    line-height: 1;
-    padding: 4px 10px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .checklist-close:hover { color: var(--ink); background: var(--border); }
-  .checklist-body {
-    padding: 20px 24px 24px;
-  }
+  /* PRE-STREAM CHECKLIST (inline tab) */
   .checklist-section-head {
     font-size: 11px;
     font-weight: 700;
@@ -1163,18 +1101,112 @@
   .checklist-tag.recurring { background: var(--danger-soft); color: var(--danger); }
   .checklist-tag.last { background: var(--warning-soft); color: var(--warning); }
   .checklist-tag.always { background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--border); }
-  .checklist-footer {
-    padding: 14px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
   .checklist-progress-text {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--ink-dim);
     font-family: var(--mono);
+  }
+
+  /* AI RESULT CARDS */
+  .ai-result {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 18px 20px;
+  }
+  .ai-result-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-dim);
+    font-size: 14px;
+    padding: 12px 0;
+  }
+  .ai-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-score-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .ai-score-badge { font-family: var(--mono); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .ai-score-badge.great { color: var(--success); }
+  .ai-score-badge.ok    { color: var(--warning); }
+  .ai-score-badge.poor  { color: var(--danger); }
+  .ai-score-label { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .ai-score-sublabel { font-size: 13px; color: var(--ink-dim); margin-top: 2px; }
+  .ai-section { margin-bottom: 14px; }
+  .ai-section-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 6px; }
+  .ai-section-body { font-size: 14px; line-height: 1.6; color: var(--ink); }
+  .ai-section-body strong { color: var(--accent-dark); font-weight: 600; }
+  .ai-dimension-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ai-dimension-row:last-child { border-bottom: none; }
+  .ai-dim-label { flex: 1; color: var(--ink-2); font-weight: 500; }
+  .ai-dim-score { font-family: var(--mono); font-size: 13px; font-weight: 700; min-width: 32px; text-align: right; }
+  .ai-dim-score.great { color: var(--success); }
+  .ai-dim-score.ok    { color: var(--warning); }
+  .ai-dim-score.poor  { color: var(--danger); }
+  .ai-alternatives { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+  .ai-alt-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .ai-alt-item { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--ink); line-height: 1.45; cursor: pointer; transition: background 0.12s; }
+  .ai-alt-item:last-child { border-bottom: none; }
+  .ai-alt-item:hover { background: var(--accent-soft); color: var(--accent-dark); }
+
+  /* CHANNEL OVERVIEW */
+  .channel-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 700px) { .channel-overview-grid { grid-template-columns: repeat(2, 1fr); } }
+  .schedule-day-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .schedule-day-row:last-child { border-bottom: none; }
+  .schedule-day-label {
+    width: 80px;
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .schedule-day-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .schedule-day-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+  }
+  .schedule-day-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    min-width: 28px;
+    text-align: right;
   }
 
   /* HISTORY CARDS */
@@ -1574,6 +1606,9 @@
     <div class="inner-tabs">
       <button class="inner-tab-btn active" data-inner="audio">Audio Analysis</button>
       <button class="inner-tab-btn" data-inner="stream-history">Advanced Stream Analysis</button>
+      <button class="inner-tab-btn" data-inner="checklist">Pre-Stream Checklist</button>
+      <button class="inner-tab-btn" data-inner="channel-overview">Channel Overview</button>
+      <button class="inner-tab-btn" data-inner="ai-analysis">✦ AI Analysis</button>
     </div>
 
     <!-- ── INNER PANEL: Audio Analysis ── -->
@@ -1601,6 +1636,21 @@
           <button class="primary" id="proxy-save">Save</button>
         </div>
         <div id="proxy-status" style="margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">Not configured</div>
+      </div>
+
+      <div class="card">
+        <h2>Claude API key</h2>
+        <p class="subtitle">Powers AI-enhanced improvement notes, title rating, and channel description analysis. Your key is stored in your browser only and sent directly to Anthropic — it never touches any other server.</p>
+        <div class="notice info" style="margin-bottom: 14px;">
+          Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys → Create Key. Free tier credits are enough to test with.
+        </div>
+        <label>Anthropic API Key</label>
+        <div class="row-3" style="margin-top: 4px;">
+          <input type="password" id="claude-api-key" placeholder="sk-ant-…" autocomplete="off" />
+          <button class="ghost" id="claude-key-test">Test</button>
+          <button class="primary" id="claude-key-save">Save</button>
+        </div>
+        <div id="claude-key-status" style="margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim);">Not configured</div>
       </div>
 
       <div id="audio-results-card" class="card" style="display:none;">
@@ -1647,11 +1697,11 @@
 
       <div class="card">
         <h2>Stream history</h2>
-        <p class="subtitle">Last 50 analyses, saved in your browser. Closes when you clear browser data.</p>
+        <p class="subtitle">Last 50 analyses, saved in your browser. Closes when you clear browser data.<br>
+        <span style="color:var(--ink-faint);font-size:13px;">Only your own streams are saved. Pre-Stream Checklist is generated from this history and viewable in the Pre-Stream Checklist tab.</span></p>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
           <span id="history-count" style="font-size: 13px; color: var(--ink-dim);">No analyses saved yet.</span>
           <div style="display:flex;gap:8px;align-items:center;">
-            <button class="ghost small" id="prestream-checklist-btn" style="display:none;">✅ Pre-stream checklist</button>
             <button class="ghost small" id="export-history-csv" style="display:none;">⬇ Export CSV</button>
             <button class="ghost small" id="history-clear" style="display:none;">Clear history</button>
           </div>
@@ -1661,30 +1711,88 @@
 
     </div>
 
+    <!-- ── INNER PANEL: Pre-Stream Checklist ── -->
+    <div class="inner-panel" id="inner-checklist">
+      <div class="card">
+        <h2>Pre-Stream Checklist</h2>
+        <p class="subtitle">Personalised before every stream. Recurring issues from your history are surfaced first, followed by last session's notes, then standard hygiene checks.</p>
+        <div id="checklist-inline-body">
+          <p style="color:var(--ink-faint);font-size:14px;padding:20px 0 10px;">Run at least one analysis on your own streams to generate a personalised checklist.</p>
+        </div>
+        <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <span class="checklist-progress-text" id="checklist-inline-progress" style="font-family:var(--mono);font-size:12px;color:var(--ink-dim);"></span>
+          <div style="display:flex;gap:8px;">
+            <button class="ghost small" id="checklist-inline-reset">Reset</button>
+            <button class="primary" id="checklist-inline-golive">Done — go live 🔴</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INNER PANEL: Channel Overview ── -->
+    <div class="inner-panel" id="inner-channel-overview">
+      <div id="channel-overview-empty" class="card">
+        <h2>Channel Overview</h2>
+        <p class="subtitle">Channel-level metrics from the Twitch API — follower count, follower conversion rate, and schedule consistency. Sign in and run at least one analysis to populate.</p>
+        <div class="notice info" style="margin-top:14px;">Sign in and analyse a VOD from your channel to load channel-level data.</div>
+      </div>
+      <div id="channel-overview-content" style="display:none;">
+        <!-- Follower stats card -->
+        <div class="card" id="channel-followers-card">
+          <h2>Follower metrics</h2>
+          <p class="subtitle" id="channel-followers-subtitle">—</p>
+          <div class="stats-grid" id="channel-followers-grid" style="margin-top:14px;"></div>
+        </div>
+        <!-- Schedule consistency card -->
+        <div class="card" id="channel-schedule-card">
+          <h2>Schedule consistency</h2>
+          <p class="subtitle">How consistently you stream on the same days and at similar times, based on your last 20 VODs.</p>
+          <div id="channel-schedule-content" style="margin-top:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INNER PANEL: AI Analysis ── -->
+    <div class="inner-panel" id="inner-ai-analysis">
+
+      <div id="ai-analysis-locked" class="notice warn" style="margin-bottom: 20px; display:none;">
+        <strong>Claude API key required.</strong> Configure your key in the Audio Analysis tab to unlock AI features.
+      </div>
+
+      <!-- Title Rating -->
+      <div class="card">
+        <h2>Title rating</h2>
+        <p class="subtitle">Rate a stream title for clickability, searchability, and emotional hook. Auto-filled from the last analysed VOD — or type any title to test alternatives.</p>
+        <label>Stream title</label>
+        <div class="row" style="margin-top: 4px; gap: 8px;">
+          <input type="text" id="title-rating-input" placeholder="e.g. I played Minecraft for 24 hours straight" maxlength="140" />
+          <button class="primary" id="title-rating-btn" style="white-space:nowrap;">Rate title</button>
+        </div>
+        <div id="title-rating-char" style="font-size:11px;color:var(--ink-faint);margin-top:4px;text-align:right;">0 / 140</div>
+        <div id="title-rating-result" style="margin-top: 16px; display:none;"></div>
+      </div>
+
+      <!-- Channel Description Analysis -->
+      <div class="card">
+        <h2>Channel description analysis</h2>
+        <p class="subtitle">Analyse your Twitch "About" panel for discoverability, tone, call-to-action clarity, and keyword density.</p>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="ghost" id="fetch-description-btn">Fetch my description</button>
+          <span id="fetch-desc-status" style="font-size:13px;color:var(--ink-dim);"></span>
+        </div>
+        <textarea id="channel-description-input" placeholder="Your channel description will appear here — or paste it manually." style="width:100%;min-height:120px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-md);padding:10px 12px;font-family:var(--sans);font-size:14px;color:var(--ink);line-height:1.55;resize:vertical;outline:none;" maxlength="3000"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+          <span id="desc-char" style="font-size:11px;color:var(--ink-faint);">0 / 3000</span>
+          <button class="primary" id="desc-analysis-btn">Analyse description</button>
+        </div>
+        <div id="desc-analysis-result" style="margin-top: 16px; display:none;"></div>
+      </div>
+
+    </div>
+
   </div>
 
 </main>
-
-<!-- PRE-STREAM CHECKLIST MODAL -->
-<div class="checklist-overlay" id="checklist-overlay" hidden>
-  <div class="checklist-modal" role="dialog" aria-modal="true" aria-labelledby="checklist-title">
-    <div class="checklist-header">
-      <div>
-        <h2 id="checklist-title">🟢 Pre-stream checklist</h2>
-        <div class="checklist-subtitle" id="checklist-subtitle">Based on your stream history</div>
-      </div>
-      <button class="checklist-close" id="checklist-close" aria-label="Close">✕</button>
-    </div>
-    <div class="checklist-body" id="checklist-body"></div>
-    <div class="checklist-footer">
-      <span class="checklist-progress-text" id="checklist-progress">0 / 0 checked</span>
-      <div style="display:flex;gap:8px;">
-        <button class="ghost small" id="checklist-reset">Reset</button>
-        <button class="primary" id="checklist-close-footer">Done — go live 🔴</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- LOG DRAWER (debug, collapsed by default) -->
 <button class="log-toggle" id="log-toggle">View log</button>
@@ -3757,9 +3865,7 @@ function renderHistoryList() {
     countEl.textContent = 'No analyses saved yet. Run an analysis on the Dashboard to start building your history.';
     clearBtn.style.display = 'none';
     const exportBtn = document.getElementById('export-history-csv');
-    const checklistBtn = document.getElementById('prestream-checklist-btn');
     if (exportBtn) exportBtn.style.display = 'none';
-    if (checklistBtn) checklistBtn.style.display = 'none';
     listEl.innerHTML = '';
     return;
   }
@@ -3767,9 +3873,7 @@ function renderHistoryList() {
   countEl.textContent = `${history.length} analysis${history.length === 1 ? '' : 'es'} saved.`;
   clearBtn.style.display = '';
   const exportBtnShow = document.getElementById('export-history-csv');
-  const checklistBtnShow = document.getElementById('prestream-checklist-btn');
   if (exportBtnShow) exportBtnShow.style.display = '';
-  if (checklistBtnShow) checklistBtnShow.style.display = '';
 
   // Recurring feedback block (≥30% threshold)
   const frequent = detectFrequentFeedback(history);
@@ -3852,6 +3956,12 @@ document.querySelectorAll('.inner-tab-btn').forEach(btn => {
   if (btn.dataset.inner === 'stream-history') {
     btn.addEventListener('click', renderHistoryList);
   }
+  if (btn.dataset.inner === 'checklist') {
+    btn.addEventListener('click', renderInlineChecklist);
+  }
+  if (btn.dataset.inner === 'channel-overview') {
+    btn.addEventListener('click', loadChannelOverview);
+  }
 });
 
 // ===============================================
@@ -3911,11 +4021,9 @@ document.addEventListener('click', e => {
 });
 
 // ===============================================
-// Pre-stream checklist
+// Pre-stream checklist (inline tab)
 // ===============================================
 
-// Always-on items that every streamer should check before going live.
-// These appear regardless of history — foundational hygiene baseline.
 const ALWAYS_CHECKLIST = [
   { text: 'Open OBS and confirm <strong>scenes and sources</strong> are loading correctly.', tag: 'always' },
   { text: 'Test your <strong>mic and audio levels</strong> — speak at stream volume, check the meter hits -14 to -12 dBFS.', tag: 'always' },
@@ -3926,88 +4034,175 @@ const ALWAYS_CHECKLIST = [
 
 function buildChecklist() {
   const history = loadHistory();
-
-  // Recurring issues: patterns that fire in ≥30% of sessions
   const frequent = detectFrequentFeedback(history);
-
-  // Last session's improvement notes (priority-ordered, HTML stripped)
   const lastNotes = history.length
-    ? (history[0].notes || []).map(n => ({
-        text: (n.text || '').trim(),
-        tag: 'last'
-      }))
+    ? (history[0].notes || []).map(n => ({ text: (n.text || '').trim(), tag: 'last' }))
     : [];
 
   const items = [];
 
-  // 1. Recurring items (highest priority)
   if (frequent.length) {
     items.push({ type: 'section', label: `⚠ Recurring issues (${frequent.length}) — fix these before going live` });
-    // Map frequent patterns → actionable checklist items
     const PATTERN_ACTIONS = {
       'dead_air_high':   'Prepare a list of <strong>questions and topics</strong> to keep chat active during slow gameplay moments.',
-      'low_cpm':         'Actively <strong>read chat aloud and call viewers by name</strong> — this is the fastest lever for chat growth.',
+      'low_cpm':         'Actively <strong>read chat aloud and call viewers by name</strong> — fastest lever for chat growth.',
       'clipping':        'In OBS: Mic → Filters → add <strong>Limiter at −1 dB</strong> to prevent audio clipping.',
-      'echo':            'Use <strong>headphones instead of speakers</strong>, or check OBS desktop audio isn\'t doubled from capture card.',
-      'low_mic':         'Raise your <strong>mic gain</strong> in OBS until your speaking voice averages −16 to −14 dBFS.',
-      'few_moments':     'Plan at least <strong>one structured "moment" per hour</strong> — a challenge, giveaway, or viewer game.',
-      'short_stream':    'Aim for <strong>at least 90 minutes</strong> so Twitch\'s algorithm has time to surface your stream.',
-      'dominated_chat':  'Ask lurkers a direct question early: <strong>"What game are you playing right now?"</strong> pulls in the silent majority.',
+      'echo':            'Use <strong>headphones instead of speakers</strong>, or check OBS desktop audio isn\'t doubled.',
+      'low_mic':         'Raise your <strong>mic gain</strong> until your speaking voice averages −16 to −14 dBFS.',
+      'few_moments':     'Plan at least <strong>one structured moment per hour</strong> — a challenge, giveaway, or viewer game.',
+      'short_stream':    'Aim for <strong>at least 90 minutes</strong> so Twitch\'s algorithm surfaces your stream.',
+      'dominated_chat':  'Ask lurkers a direct question early: <strong>"What game are you playing right now?"</strong>',
     };
     const PATTERN_IDS = {
-      'Recurring quiet stretches': 'dead_air_high',
-      'Recurring low chat velocity': 'low_cpm',
-      'Recurring audio clipping': 'clipping',
-      'Recurring audio echo': 'echo',
-      'Recurring quiet mic level': 'low_mic',
-      'Recurring shortage of clip-worthy moments': 'few_moments',
-      'Recurring short stream duration': 'short_stream',
-      'Recurring chat dominated by few users': 'dominated_chat',
+      'quiet stretches': 'dead_air_high', 'low chat velocity': 'low_cpm',
+      'audio clipping': 'clipping', 'audio echo': 'echo', 'quiet mic': 'low_mic',
+      'clip-worthy moments': 'few_moments', 'short stream': 'short_stream', 'dominated by few': 'dominated_chat',
     };
     frequent.forEach(f => {
-      // Match label to pattern key
-      const key = Object.keys(PATTERN_IDS).find(k => f.label.includes(k.replace('Recurring ', '').split(' ')[0]));
+      const key = Object.keys(PATTERN_IDS).find(k => f.label.toLowerCase().includes(k));
       const patKey = key ? PATTERN_IDS[key] : null;
       const actionText = patKey && PATTERN_ACTIONS[patKey]
-        ? PATTERN_ACTIONS[patKey]
-        : `Address: <strong>${f.label}</strong> (appeared in ${f.pct}% of your streams).`;
-      items.push({ text: actionText + ` <em style="color:var(--ink-faint);font-size:12px;">${f.pct}% of streams</em>`, tag: 'recurring' });
+        ? PATTERN_ACTIONS[patKey] + ` <em style="color:var(--ink-faint);font-size:12px;">${f.pct}% of your streams</em>`
+        : `Address: <strong>${f.label}</strong> (${f.pct}% of streams).`;
+      items.push({ text: actionText, tag: 'recurring' });
     });
   }
 
-  // 2. Last session's improvement notes
   if (lastNotes.length) {
     const lastTitle = history[0].vodTitle ? `"${history[0].vodTitle}"` : 'your last stream';
     items.push({ type: 'section', label: `From ${lastTitle}` });
     lastNotes.forEach(n => items.push(n));
   }
 
-  // 3. Always-on items
   items.push({ type: 'section', label: 'Standard pre-stream checks' });
   ALWAYS_CHECKLIST.forEach(i => items.push(i));
-
   return items;
 }
 
-function renderChecklistModal() {
-  const items = buildChecklist();
-  const body = document.getElementById('checklist-body');
+// ===============================================
+// AI checklist synthesis (Pre-Stream Checklist tab)
+// Takes the last session's improvement notes + recurring patterns and
+// synthesises 3 focused actions tailored to the NEXT stream specifically.
+// Falls back to the rule-based checklist silently.
+// ===============================================
+
+async function runAIChecklistSynthesis(history, checklistBodyEl, insertAfterEl) {
+  if (!isAIUnlocked() || !history.length) return;
+
+  const loadingEl = document.createElement('div');
+  loadingEl.id = 'ai-checklist-loading';
+  loadingEl.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);padding:8px 0 4px;';
+  loadingEl.innerHTML = '<div class="ai-spinner"></div> Generating AI focus points…';
+
+  // Insert right after the section header for last stream
+  if (insertAfterEl && insertAfterEl.nextSibling) {
+    insertAfterEl.parentNode.insertBefore(loadingEl, insertAfterEl.nextSibling);
+  } else {
+    checklistBodyEl.prepend(loadingEl);
+  }
+
+  const lastSession = history[0];
+  const lastNotes = (lastSession.notes || []).map(n =>
+    (n.text || '').replace(/<[^>]+>/g, '').trim()
+  ).filter(Boolean);
+
+  const frequent = detectFrequentFeedback(history);
+  const frequentLabels = frequent.map(f => `${f.label} (${f.pct}% of streams)`);
+
+  const systemPrompt = `You are a Twitch stream coach writing a pre-stream focus list. You return ONLY valid JSON — an array of exactly 3 objects: { "text": "HTML string", "priority": "high"|"medium"|"low" }.
+Rules:
+- Each item is a concrete action the streamer should do TODAY before going live.
+- Reference specific numbers or patterns from their history.
+- Use <strong> tags for key actions or numbers.
+- Be direct. No fluff. Each item is 1-2 sentences max.
+- Prioritise: critical technical fixes > engagement patterns > structural improvements.
+- Return ONLY the JSON array.`;
+
+  const userMessage = `Stream history summary:
+- Sessions analysed: ${history.length}
+- Last session: "${lastSession.vodTitle || 'unknown'}" — ${lastSession.cpm != null ? lastSession.cpm.toFixed(1) + ' msg/min' : 'no CPM'}, ${lastSession.deadPct != null ? lastSession.deadPct.toFixed(0) + '% dead-air' : ''}, ${lastSession.echoCount > 0 ? lastSession.echoCount + ' echo flags' : 'clean audio'}
+
+Last session improvement notes:
+${lastNotes.length ? lastNotes.map((n,i) => `${i+1}. ${n}`).join('\n') : '(none)'}
+
+Recurring patterns (appeared in ≥30% of sessions):
+${frequentLabels.length ? frequentLabels.map(l => `- ${l}`).join('\n') : '(none)'}
+
+Write exactly 3 specific pre-stream actions for their NEXT stream, synthesising what matters most from this data.`;
+
+  try {
+    const raw = await callClaude(systemPrompt, userMessage, 600);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const actions = JSON.parse(clean);
+    if (!Array.isArray(actions) || !actions.length) throw new Error('Empty response');
+
+    const loadEl = document.getElementById('ai-checklist-loading');
+    if (loadEl) loadEl.remove();
+
+    // Build AI focus block and insert it at the top of checklistBodyEl
+    const focusBlock = document.createElement('div');
+    focusBlock.style.cssText = 'margin-bottom:18px;';
+    focusBlock.innerHTML = `
+      <div class="checklist-section-head" style="margin-top:0;">✦ AI Focus — 3 things for your next stream</div>
+      ${actions.map((a, i) => {
+        const priorityColor = a.priority === 'high' ? 'var(--danger)' : a.priority === 'medium' ? 'var(--warning)' : 'var(--ink-dim)';
+        return `
+          <div class="checklist-item" data-ci="ai-${i}">
+            <div class="checklist-checkbox" style="border-color:${priorityColor};"></div>
+            <span class="checklist-text">${a.text}</span>
+            <span class="checklist-tag ${a.priority === 'high' ? 'recurring' : a.priority === 'medium' ? 'last' : 'always'}">${a.priority}</span>
+          </div>
+        `;
+      }).join('')}
+      <div style="font-size:11px;color:var(--ink-faint);font-family:var(--mono);margin-top:6px;">✦ Synthesised by Claude</div>
+    `;
+
+    // Wire checkboxes for AI items
+    focusBlock.querySelectorAll('.checklist-item').forEach((row) => {
+      row.addEventListener('click', () => {
+        const isDone = row.classList.contains('done');
+        if (isDone) {
+          row.classList.remove('done');
+          row.querySelector('.checklist-checkbox').textContent = '';
+        } else {
+          row.classList.add('done');
+          row.querySelector('.checklist-checkbox').textContent = '✓';
+        }
+      });
+    });
+
+    checklistBodyEl.prepend(focusBlock);
+    log('AI checklist synthesis ready.', 'ok');
+  } catch (e) {
+    const loadEl = document.getElementById('ai-checklist-loading');
+    if (loadEl) loadEl.remove();
+    log('AI checklist synthesis failed (rule-based kept): ' + e.message, 'warn');
+  }
+}
+
+function renderInlineChecklist() {
+  const body = document.getElementById('checklist-inline-body');
+  const progressEl = document.getElementById('checklist-inline-progress');
   if (!body) return;
 
-  // State: checked set (persisted in sessionStorage so reset works)
+  const history = loadHistory();
+  if (!history.length) {
+    body.innerHTML = '<p style="color:var(--ink-faint);font-size:14px;padding:20px 0 10px;">Run at least one analysis on your own streams to generate a personalised checklist.</p>';
+    if (progressEl) progressEl.textContent = '';
+    return;
+  }
+
+  const items = buildChecklist();
   let checked;
   try { checked = new Set(JSON.parse(sessionStorage.getItem('checklistChecked') || '[]')); }
   catch { checked = new Set(); }
 
   let itemIndex = 0;
-  const itemMap = []; // maps rendered index → items index for checkbox tracking
-
-  body.innerHTML = items.map((item, i) => {
+  body.innerHTML = items.map(item => {
     if (item.type === 'section') {
       return `<div class="checklist-section-head">${item.label}</div>`;
     }
     const idx = itemIndex++;
-    itemMap.push(i);
     const isDone = checked.has(idx);
     return `
       <div class="checklist-item${isDone ? ' done' : ''}" data-ci="${idx}">
@@ -4019,62 +4214,724 @@ function renderChecklistModal() {
   }).join('');
 
   const totalCheckable = itemIndex;
-
   function updateProgress() {
-    const count = checked.size;
-    const p = document.getElementById('checklist-progress');
-    if (p) p.textContent = `${count} / ${totalCheckable} checked`;
+    if (progressEl) progressEl.textContent = `${checked.size} / ${totalCheckable} checked`;
   }
   updateProgress();
 
-  // Click handler for checkboxes
   body.addEventListener('click', e => {
     const row = e.target.closest('.checklist-item');
     if (!row) return;
     const idx = parseInt(row.dataset.ci, 10);
     if (isNaN(idx)) return;
-    if (checked.has(idx)) {
-      checked.delete(idx);
-      row.classList.remove('done');
-      row.querySelector('.checklist-checkbox').textContent = '';
-    } else {
-      checked.add(idx);
-      row.classList.add('done');
-      row.querySelector('.checklist-checkbox').textContent = '✓';
-    }
+    if (checked.has(idx)) { checked.delete(idx); row.classList.remove('done'); row.querySelector('.checklist-checkbox').textContent = ''; }
+    else { checked.add(idx); row.classList.add('done'); row.querySelector('.checklist-checkbox').textContent = '✓'; }
     sessionStorage.setItem('checklistChecked', JSON.stringify([...checked]));
     updateProgress();
   });
-}
 
-function openChecklistModal() {
-  const overlay = document.getElementById('checklist-overlay');
-  if (!overlay) return;
-  renderChecklistModal();
-  overlay.hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-
-function closeChecklistModal() {
-  const overlay = document.getElementById('checklist-overlay');
-  if (overlay) overlay.hidden = true;
-  document.body.style.overflow = '';
+  // AI synthesis — fire in background after rule-based render completes.
+  // Only if AI is unlocked and there's history to work from.
+  if (isAIUnlocked() && history.length) {
+    runAIChecklistSynthesis(history, body, null)
+      .catch(e => log('AI checklist error: ' + e.message, 'warn'));
+  }
 }
 
 document.addEventListener('click', e => {
-  if (e.target.id === 'prestream-checklist-btn') openChecklistModal();
-  if (e.target.id === 'checklist-close' || e.target.id === 'checklist-close-footer') closeChecklistModal();
-  if (e.target.id === 'checklist-reset') {
+  if (e.target.id === 'checklist-inline-reset') {
     sessionStorage.removeItem('checklistChecked');
-    renderChecklistModal();
+    renderInlineChecklist();
   }
-  // Click outside modal to close
-  if (e.target.id === 'checklist-overlay') closeChecklistModal();
+  if (e.target.id === 'checklist-inline-golive') {
+    switchInnerTab('audio'); // go back to audio — just a satisfying close action
+  }
 });
 
-// Escape key closes modal
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeChecklistModal();
+// ===============================================
+// #4 Follower conversion + #32 Schedule consistency + #54 Channel Overview
+// ===============================================
+
+// Fetch follower count via Helix (requires login)
+async function fetchFollowerCount(userId) {
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  if (!saved.token || !saved.client) throw new Error('Not logged in');
+  const res = await helixRaw(`/channels/followers?broadcaster_id=${userId}&first=1`, saved.client, saved.token);
+  return res.total || 0;
+}
+
+// Fetch last N VODs for schedule analysis (GQL, no auth needed)
+async function fetchRecentVodsForSchedule(channelLogin, limit) {
+  const body = {
+    query: `query ScheduleVods($login: String!, $limit: Int!) {
+      user(login: $login) {
+        videos(first: $limit, sort: TIME) {
+          edges { node { id createdAt lengthSeconds broadcastType } }
+        }
+      }
+    }`,
+    variables: { login: channelLogin, limit }
+  };
+  const res = await gql(body);
+  const user = Array.isArray(res) ? res[0]?.data?.user : res?.data?.user;
+  if (!user) return [];
+  return (user.videos?.edges || []).map(e => e.node).filter(Boolean);
+}
+
+// Compute schedule consistency from an array of VOD objects with createdAt
+function computeScheduleConsistency(vods) {
+  // Only look at archives (actual streams, not highlights/uploads)
+  const streams = vods
+    .filter(v => (v.broadcastType || '').toUpperCase() === 'ARCHIVE' || !v.broadcastType)
+    .map(v => ({ date: new Date(v.createdAt), dur: v.lengthSeconds || 0 }))
+    .filter(v => !isNaN(v.date));
+
+  if (streams.length < 3) return null;
+
+  // Day-of-week distribution
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayCounts = new Array(7).fill(0);
+  const hourCounts = new Array(24).fill(0);
+  const weekdaySet = new Set();
+  streams.forEach(s => {
+    dayCounts[s.date.getDay()]++;
+    hourCounts[s.date.getHours()]++;
+    weekdaySet.add(s.date.getDay());
+  });
+
+  // Consistency score: how concentrated are streams in top-2 days?
+  const sorted = [...dayCounts].sort((a, b) => b - a);
+  const top2 = sorted[0] + (sorted[1] || 0);
+  const consistencyPct = streams.length > 0 ? Math.round((top2 / streams.length) * 100) : 0;
+
+  // Most common start hour window
+  const peakHour = hourCounts.indexOf(Math.max(...hourCounts));
+  const peakLabel = `${String(peakHour).padStart(2,'0')}:00–${String(peakHour+2).padStart(2,'0')}:00`;
+
+  // Avg stream length
+  const avgDurSec = streams.reduce((a, b) => a + b.dur, 0) / streams.length;
+
+  // Regularity: median gap between streams in days
+  const sortedDates = [...streams].sort((a, b) => a.date - b.date).map(s => s.date);
+  const gaps = [];
+  for (let i = 1; i < sortedDates.length; i++) {
+    gaps.push((sortedDates[i] - sortedDates[i-1]) / (1000 * 86400));
+  }
+  const medianGap = gaps.length ? gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)] : null;
+
+  return {
+    totalStreams: streams.length,
+    dayCounts,
+    dayNames: DAY_NAMES,
+    consistencyPct,
+    peakLabel,
+    avgDurSec,
+    medianGapDays: medianGap ? Math.round(medianGap * 10) / 10 : null,
+    weekdays: [...weekdaySet],
+  };
+}
+
+async function loadChannelOverview() {
+  const emptyEl = document.getElementById('channel-overview-empty');
+  const contentEl = document.getElementById('channel-overview-content');
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+
+  if (!saved.user) {
+    if (emptyEl) emptyEl.style.display = '';
+    if (contentEl) contentEl.style.display = 'none';
+    return;
+  }
+
+  const channelLogin = saved.user.login;
+  const userId = saved.user.id;
+
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (contentEl) contentEl.style.display = '';
+
+  // ── Follower metrics ──
+  const followersCard = document.getElementById('channel-followers-card');
+  const followersGrid = document.getElementById('channel-followers-grid');
+  const followersSub = document.getElementById('channel-followers-subtitle');
+
+  if (followersGrid) followersGrid.innerHTML = '<div style="padding:10px 0;color:var(--ink-dim);font-size:13px;">Loading follower data…</div>';
+
+  try {
+    const followerCount = await fetchFollowerCount(userId);
+
+    // Get history to compute follower conversion proxy
+    const history = loadHistory();
+    const totalViews = history.reduce((a, r) => a + (r.viewCount || 0), 0);
+
+    // Pull view count from the most recent VOD via metadata if available
+    // (viewCount stored in history record if we add it — see note below)
+    // For now compute from chat velocity proxy: avg cpm across sessions
+    const avgCpm = history.length
+      ? history.reduce((a, r) => a + (r.cpm || 0), 0) / history.length
+      : null;
+
+    let conversionNote = '';
+    if (history.length >= 3 && avgCpm) {
+      // Rough heuristic: every ~1 cpm ≈ 10-20 CCV for small streamers
+      const estCCV = Math.round(avgCpm * 12);
+      const estFollowRate = followerCount > 0 && estCCV > 0
+        ? ((estCCV / Math.max(followerCount, 1)) * 100).toFixed(1)
+        : null;
+      if (estFollowRate) {
+        conversionNote = `Estimated ~${estCCV} avg CCV → ~${estFollowRate}% of followers engage per stream`;
+      }
+    }
+
+    if (followersSub) followersSub.textContent = conversionNote || 'Your channel follower data from Twitch.';
+
+    if (followersGrid) {
+      const historyStreams = history.length;
+      followersGrid.className = 'stats-grid';
+      followersGrid.innerHTML = `
+        <div class="stat">
+          <div class="stat-label">Followers</div>
+          <div class="stat-value">${nFmt(followerCount)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Streams analysed</div>
+          <div class="stat-value">${historyStreams}</div>
+          <div class="stat-sub">own channel only</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Avg chat/min</div>
+          <div class="stat-value">${avgCpm != null ? avgCpm.toFixed(1) : '—'}</div>
+          <div class="stat-sub">across saved history</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Est. engage rate</div>
+          <div class="stat-value" id="engage-rate-val">—</div>
+          <div class="stat-sub" id="engage-rate-sub">CCV / followers</div>
+        </div>
+      `;
+      // Fill engagement rate after DOM settles
+      if (followerCount > 0 && avgCpm != null) {
+        const estCCV2 = Math.round(avgCpm * 12);
+        const rate = ((estCCV2 / followerCount) * 100).toFixed(1);
+        const el = document.getElementById('engage-rate-val');
+        const sub = document.getElementById('engage-rate-sub');
+        if (el) el.textContent = rate + '%';
+        if (sub) sub.textContent = `~${nFmt(estCCV2)} CCV est.`;
+      }
+    }
+  } catch (e) {
+    if (followersGrid) followersGrid.innerHTML = `<div style="padding:10px 0;color:var(--danger);font-size:13px;">Could not load follower data: ${escapeHTML(e.message)}</div>`;
+    log('Follower fetch failed: ' + e.message, 'warn');
+  }
+
+  // ── Schedule consistency ──
+  const scheduleContent = document.getElementById('channel-schedule-content');
+  if (scheduleContent) scheduleContent.innerHTML = '<div style="color:var(--ink-dim);font-size:13px;">Analysing schedule from last 20 VODs…</div>';
+
+  try {
+    const vods = await fetchRecentVodsForSchedule(channelLogin, 20);
+    const sched = computeScheduleConsistency(vods);
+
+    if (!sched) {
+      if (scheduleContent) scheduleContent.innerHTML = '<p style="color:var(--ink-faint);font-size:14px;">Not enough VODs to compute schedule data (need at least 3 archives).</p>';
+    } else {
+      const maxDay = Math.max(...sched.dayCounts, 1);
+      const scoreClass = sched.consistencyPct >= 70 ? 'ok' : sched.consistencyPct >= 40 ? 'warn' : 'bad';
+      const scoreLabel = sched.consistencyPct >= 70 ? 'Consistent' : sched.consistencyPct >= 40 ? 'Moderate' : 'Irregular';
+
+      const dayBars = sched.dayNames.map((name, i) => {
+        const pct = Math.round((sched.dayCounts[i] / maxDay) * 100);
+        return `
+          <div class="schedule-day-row">
+            <span class="schedule-day-label">${name}</span>
+            <div class="schedule-day-bar"><div class="schedule-day-fill" style="width:${pct}%"></div></div>
+            <span class="schedule-day-count">${sched.dayCounts[i]}</span>
+          </div>
+        `;
+      }).join('');
+
+      if (scheduleContent) scheduleContent.innerHTML = `
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;">
+          <div class="bench-card" style="flex:1;min-width:180px;">
+            <div class="bench-card-head">Consistency score</div>
+            <div style="font-size:28px;font-weight:700;font-family:var(--mono);" class="bench-val ${scoreClass}">${sched.consistencyPct}%</div>
+            <div style="font-size:13px;color:var(--ink-dim);margin-top:4px;">${scoreLabel} — ${sched.totalStreams} streams analysed</div>
+          </div>
+          <div class="bench-card" style="flex:1;min-width:180px;">
+            <div class="bench-card-head">Typical start time</div>
+            <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--ink);">${sched.peakLabel}</div>
+            <div style="font-size:13px;color:var(--ink-dim);margin-top:4px;">Most common window (local time)</div>
+          </div>
+          <div class="bench-card" style="flex:1;min-width:180px;">
+            <div class="bench-card-head">Avg stream length</div>
+            <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--ink);">${fmtDurShort(sched.avgDurSec)}</div>
+            <div style="font-size:13px;color:var(--ink-dim);margin-top:4px;">${sched.medianGapDays != null ? `Streams ~${sched.medianGapDays}d apart` : 'Median gap unavailable'}</div>
+          </div>
+        </div>
+        <h3 style="font-size:13px;font-weight:600;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Streams by day of week</h3>
+        ${dayBars}
+        ${sched.consistencyPct < 50 ? `<div class="notice warn" style="margin-top:14px;"><strong>Irregular schedule detected.</strong> Consistent streamers on the same days/times get significantly better algorithmic surfacing on Twitch. Try locking in 2–3 days per week and sticking to them for 4+ weeks.</div>` : ''}
+      `;
+    }
+  } catch (e) {
+    if (scheduleContent) scheduleContent.innerHTML = `<div style="color:var(--danger);font-size:13px;">Schedule analysis failed: ${escapeHTML(e.message)}</div>`;
+    log('Schedule analysis failed: ' + e.message, 'warn');
+  }
+}
+// ===============================================
+// Claude API key management
+// ===============================================
+
+function getClaudeKey() {
+  try { return JSON.parse(localStorage.getItem('vodDeskCreds') || '{}').claudeKey || ''; }
+  catch { return ''; }
+}
+
+function isAIUnlocked() {
+  return !!getClaudeKey();
+}
+
+function updateClaudeKeyStatus(text, ok) {
+  const el = document.getElementById('claude-key-status');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--danger)' : 'var(--ink-dim)';
+}
+
+(function restoreClaudeKey() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    if (saved.claudeKey) {
+      const input = document.getElementById('claude-api-key');
+      if (input) input.value = saved.claudeKey;
+      updateClaudeKeyStatus('✓ Key saved', true);
+    }
+  } catch {}
+})();
+
+document.getElementById('claude-key-save').addEventListener('click', () => {
+  const key = (document.getElementById('claude-api-key').value || '').trim();
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  if (key) {
+    saved.claudeKey = key;
+    updateClaudeKeyStatus('✓ Saved', true);
+    log('Claude API key saved.', 'ok');
+  } else {
+    delete saved.claudeKey;
+    updateClaudeKeyStatus('Cleared', null);
+    log('Claude API key cleared.', 'ok');
+  }
+  localStorage.setItem('vodDeskCreds', JSON.stringify(saved));
+});
+
+document.getElementById('claude-key-test').addEventListener('click', async () => {
+  const key = (document.getElementById('claude-api-key').value || '').trim();
+  if (!key) { updateClaudeKeyStatus('Enter a key first', false); return; }
+  updateClaudeKeyStatus('Testing…', null);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'ping' }]
+      })
+    });
+    if (res.ok) {
+      updateClaudeKeyStatus('✓ Key valid and working', true);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      updateClaudeKeyStatus(`✗ ${err.error?.message || 'Invalid key (HTTP ' + res.status + ')'}`, false);
+    }
+  } catch (e) {
+    updateClaudeKeyStatus('✗ ' + e.message, false);
+  }
+});
+
+// ===============================================
+// Core Claude API helper
+// ===============================================
+
+async function callClaude(systemPrompt, userMessage, maxTokens) {
+  const key = getClaudeKey();
+  if (!key) throw new Error('No Claude API key configured');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens || 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }]
+    })
+  });
+  if (!res.ok) {
+    let msg;
+    try { msg = (await res.json()).error?.message; } catch { msg = await res.text(); }
+    throw new Error(msg || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+}
+
+// ===============================================
+// AI-enhanced improvement notes (background, Step 7)
+// Replaces the rule-based notes panel with Claude's synthesis.
+// Falls back silently if no key or if the call fails.
+// ===============================================
+
+async function runAIImprovementNotes(meta, comments, clips, audio, ruleBasedNotes) {
+  if (!isAIUnlocked()) return;
+
+  const improvPanel = document.getElementById('improvement-notes-panel');
+  if (!improvPanel) return;
+
+  // Show a subtle loading indicator inside the panel without hiding existing content
+  const loadingEl = document.createElement('div');
+  loadingEl.id = 'ai-improv-loading';
+  loadingEl.style.cssText = 'margin-top:12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);';
+  loadingEl.innerHTML = '<div class="ai-spinner"></div> Enhancing with AI…';
+  improvPanel.appendChild(loadingEl);
+
+  const dur = meta.duration;
+  const cpm = dur > 0 ? comments.length / (dur / 60) : 0;
+  const unique = new Set(comments.map(c => c.user)).size;
+  const uniqueRatio = comments.length > 0 ? unique / comments.length : 0;
+  const binSec = 60;
+  const nBins = Math.ceil(dur / binSec);
+  const bins = new Array(nBins).fill(0);
+  comments.forEach(c => { const i = Math.floor(c.t / binSec); if (i >= 0 && i < nBins) bins[i]++; });
+  const deadPct = nBins > 0 ? (bins.filter(b => b < 2).length / nBins) * 100 : 0;
+  const echoCount = (audio && !audio.blocked && audio.results) ? audio.results.filter(r => r.echo).length : -1;
+  const loudness = audio && audio.loudness;
+  const topClip = clips && clips[0];
+
+  const systemPrompt = `You are a Twitch stream coach. You give concise, specific, actionable advice to streamers based on their stream data. 
+Your output must be valid JSON — an array of up to 5 objects, each with: { "priority": 1-3, "tag": "bad"|"warn"|"info"|"good", "text": "HTML string" }.
+In the text field, use <strong> tags for emphasis. Be direct and specific — reference the actual numbers. 
+Do not use generic advice. Do not repeat yourself. Priority 1 = must fix now, 2 = should fix soon, 3 = worth considering.
+Return ONLY the JSON array, no other text.`;
+
+  const ruleText = ruleBasedNotes.map((n, i) => `${i+1}. [${n.tag}] ${(n.text||'').replace(/<[^>]+>/g,'')}`).join('\n');
+
+  const userMessage = `Stream data:
+- Duration: ${fmtDurShort(dur)} (${Math.round(dur/60)} minutes)
+- Chat: ${nFmt(comments.length)} messages, ${nFmt(unique)} unique chatters, ${cpm.toFixed(1)} msg/min
+- Dead-air: ${deadPct.toFixed(0)}% of minutes had <2 messages
+- Unique chatter ratio: ${(uniqueRatio*100).toFixed(0)}%
+- Clip-worthy moments detected: ${clips ? clips.length : 0}${topClip ? ` (top moment at ${fmtDur(topClip.start)}, score ${topClip.score.toFixed(1)})` : ''}
+${loudness ? `- Audio loudness: mean ${loudness.meanDbFS.toFixed(1)} dBFS, peak ${loudness.peakDbFS.toFixed(1)} dBFS, ${loudness.clippingPct.toFixed(2)}% clipping` : '- Audio: not analysed'}
+${echoCount >= 0 ? `- Echo detected in ${echoCount}/15 audio samples` : ''}
+
+Rule-based notes already generated (use as context, but synthesise and improve):
+${ruleText}
+
+Write 3-5 improvement notes that are more contextual, specific to these exact numbers, and prioritised correctly. If the data shows something the rules missed, include it. If the rules are already correct and well-phrased, you may refine rather than replace them.`;
+
+  try {
+    const raw = await callClaude(systemPrompt, userMessage, 800);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const aiNotes = JSON.parse(clean);
+    if (!Array.isArray(aiNotes) || !aiNotes.length) throw new Error('Empty response');
+
+    // Remove loading indicator and re-render panel with AI notes
+    const loadEl = document.getElementById('ai-improv-loading');
+    if (loadEl) loadEl.remove();
+
+    improvPanel.innerHTML = renderImprovementNotesList(aiNotes) +
+      '<div style="margin-top:8px;font-size:11px;color:var(--ink-faint);font-family:var(--mono);">✦ Enhanced by Claude</div>';
+    improvPanel.style.display = '';
+    log('AI improvement notes ready.', 'ok');
+  } catch (e) {
+    const loadEl = document.getElementById('ai-improv-loading');
+    if (loadEl) loadEl.remove();
+    log('AI improvement notes failed (rule-based kept): ' + e.message, 'warn');
+  }
+}
+
+// ===============================================
+// AI-enhanced feedback list (background, Step 8)
+// Replaces the rule-based feedback items with Claude's contextual version.
+// Falls back silently. Same pattern as runAIImprovementNotes.
+// ===============================================
+
+async function runAIFeedback(meta, comments, clips, audio, ruleBasedFeedback) {
+  if (!isAIUnlocked()) return;
+
+  const feedbackList = document.getElementById('feedback-list');
+  if (!feedbackList) return;
+
+  // Inject a subtle loading badge at the top of the list
+  const loadingEl = document.createElement('li');
+  loadingEl.id = 'ai-feedback-loading';
+  loadingEl.style.cssText = 'padding:10px 0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);list-style:none;';
+  loadingEl.innerHTML = '<div class="ai-spinner"></div> Enhancing feedback with AI…';
+  feedbackList.prepend(loadingEl);
+
+  const dur = meta.duration;
+  const cpm = dur > 0 ? comments.length / (dur / 60) : 0;
+  const unique = new Set(comments.map(c => c.user)).size;
+  const uniqueRatio = comments.length > 0 ? unique / comments.length : 0;
+  const binSec = 60;
+  const nBins = Math.ceil(dur / binSec);
+  const bins = new Array(nBins).fill(0);
+  comments.forEach(c => { const i = Math.floor(c.t / binSec); if (i >= 0 && i < nBins) bins[i]++; });
+  const deadPct = nBins > 0 ? (bins.filter(b => b < 2).length / nBins) * 100 : 0;
+  const echoCount = (audio && !audio.blocked && audio.results) ? audio.results.filter(r => r.echo).length : -1;
+  const loudness = audio && audio.loudness;
+  const topClip = clips && clips[0];
+
+  const systemPrompt = `You are a Twitch stream analyst. Given stream metrics, generate a list of specific, data-driven feedback items a streamer can read immediately after their session.
+Return ONLY valid JSON — an array of objects, each: { "tag": "good"|"warn"|"bad"|"info", "body": "HTML string with <strong> for emphasis" }.
+Rules:
+- Reference actual numbers from the data. Be precise.
+- "good" = genuine strength worth celebrating. "bad" = something broken. "warn" = opportunity. "info" = context or FYI.
+- Max 8 items. Prioritise bad → warn → good → info ordering.
+- Body should be 1-2 sentences. No generic filler.
+- Return ONLY the JSON array, no other text.`;
+
+  const ruleText = ruleBasedFeedback.map(([tag, body]) => `[${tag}] ${body.replace(/<[^>]+>/g,'')}`).join('\n');
+
+  const userMessage = `Stream data:
+- Duration: ${fmtDurShort(dur)} (${Math.round(dur/60)} min)
+- Chat: ${nFmt(comments.length)} total messages, ${nFmt(unique)} unique chatters, ${cpm.toFixed(1)} msg/min
+- Dead-air: ${deadPct.toFixed(0)}% of minutes had fewer than 2 messages
+- Unique chatter ratio: ${(uniqueRatio*100).toFixed(0)}% (higher = more diverse participation)
+- Clip-worthy moments: ${clips ? clips.length : 0}${topClip ? ` — top at ${fmtDur(topClip.start)} (score ${topClip.score.toFixed(1)})` : ''}
+${loudness ? `- Audio loudness: mean ${loudness.meanDbFS.toFixed(1)} dBFS, peak ${loudness.peakDbFS.toFixed(1)} dBFS, ${loudness.clippingPct.toFixed(2)}% clipping, ${loudness.quietPct.toFixed(0)}% quiet` : '- Audio: not analysed'}
+${echoCount >= 0 ? `- Echo detected in ${echoCount} audio samples` : ''}
+
+Rule-based feedback already generated (for context):
+${ruleText}
+
+Generate feedback that is more contextual and specific to these numbers. If the rules already captured something well, improve the phrasing. If something important is missing from the rules, add it.`;
+
+  try {
+    const raw = await callClaude(systemPrompt, userMessage, 900);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const aiItems = JSON.parse(clean);
+    if (!Array.isArray(aiItems) || !aiItems.length) throw new Error('Empty response');
+
+    // Remove loading badge and replace feedback list
+    const loadEl = document.getElementById('ai-feedback-loading');
+    if (loadEl) loadEl.remove();
+
+    feedbackList.innerHTML = aiItems.map(item => {
+      const t = item.tag || 'info';
+      const b = item.body || '';
+      return `
+        <li class="feedback-item">
+          <span class="feedback-tag ${t}">${t === 'good' ? 'OK' : t === 'bad' ? 'ISSUE' : t === 'warn' ? 'NOTE' : 'INFO'}</span>
+          <div class="feedback-body">${b}</div>
+        </li>
+      `;
+    }).join('') +
+    '<li style="padding:8px 0 0;list-style:none;"><span style="font-size:11px;color:var(--ink-faint);font-family:var(--mono);">✦ Enhanced by Claude</span></li>';
+
+    log('AI feedback ready.', 'ok');
+  } catch (e) {
+    const loadEl = document.getElementById('ai-feedback-loading');
+    if (loadEl) loadEl.remove();
+    log('AI feedback failed (rule-based kept): ' + e.message, 'warn');
+  }
+}
+
+// ===============================================
+// AI Analysis tab wiring
+// ===============================================
+
+document.querySelectorAll('.inner-tab-btn').forEach(btn => {
+  if (btn.dataset.inner === 'ai-analysis') {
+    btn.addEventListener('click', () => {
+      const locked = document.getElementById('ai-analysis-locked');
+      if (locked) locked.style.display = isAIUnlocked() ? 'none' : '';
+      // Auto-fill title from last analysed VOD
+      const titleInput = document.getElementById('title-rating-input');
+      const lastTitle = document.getElementById('vod-title')?.textContent;
+      if (titleInput && lastTitle && lastTitle !== '—' && !titleInput.value) {
+        titleInput.value = lastTitle;
+        updateCharCount('title-rating-input', 'title-rating-char', 140);
+      }
+    });
+  }
+});
+
+function updateCharCount(inputId, countId, max) {
+  const input = document.getElementById(inputId);
+  const count = document.getElementById(countId);
+  if (input && count) count.textContent = `${input.value.length} / ${max}`;
+}
+
+document.getElementById('title-rating-input')?.addEventListener('input', () =>
+  updateCharCount('title-rating-input', 'title-rating-char', 140));
+document.getElementById('channel-description-input')?.addEventListener('input', () =>
+  updateCharCount('channel-description-input', 'desc-char', 3000));
+
+// ── Title Rating ──
+document.getElementById('title-rating-btn').addEventListener('click', async () => {
+  const title = (document.getElementById('title-rating-input').value || '').trim();
+  if (!title) return;
+  if (!isAIUnlocked()) {
+    alert('Configure your Claude API key in the Audio Analysis tab first.');
+    return;
+  }
+  const resultEl = document.getElementById('title-rating-result');
+  resultEl.style.display = '';
+  resultEl.innerHTML = '<div class="ai-result"><div class="ai-result-loading"><div class="ai-spinner"></div> Rating title…</div></div>';
+
+  const system = `You are a Twitch title optimisation expert. Analyse stream titles and return ONLY valid JSON — no other text.
+Return: { "score": 1-10, "verdict": "one sentence", "dimensions": [ { "name": "string", "score": 1-10, "note": "string" } ], "strengths": ["string"], "weaknesses": ["string"], "alternatives": ["string","string","string"] }
+Dimensions to score: Clickability, Searchability, Emotional hook, Clarity, Length.
+Alternatives should be meaningfully different rewrites — not just minor edits.`;
+
+  const user = `Rate this Twitch stream title: "${title}"`;
+
+  try {
+    const raw = await callClaude(system, user, 700);
+    const data = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    const sc = data.score || 0;
+    const cls = sc >= 7 ? 'great' : sc >= 5 ? 'ok' : 'poor';
+
+    const dimsHTML = (data.dimensions || []).map(d => {
+      const dcls = d.score >= 7 ? 'great' : d.score >= 5 ? 'ok' : 'poor';
+      return `<div class="ai-dimension-row">
+        <span class="ai-dim-label">${escapeHTML(d.name)}</span>
+        <span class="ai-dim-score ${dcls}">${d.score}/10</span>
+        <span style="font-size:12px;color:var(--ink-dim);flex:2;text-align:right;">${escapeHTML(d.note || '')}</span>
+      </div>`;
+    }).join('');
+
+    const strengthsHTML = (data.strengths || []).map(s =>
+      `<div style="display:flex;gap:6px;font-size:13px;margin-bottom:4px;"><span style="color:var(--success);">✓</span><span>${escapeHTML(s)}</span></div>`
+    ).join('');
+    const weaknessHTML = (data.weaknesses || []).map(w =>
+      `<div style="display:flex;gap:6px;font-size:13px;margin-bottom:4px;"><span style="color:var(--danger);">✗</span><span>${escapeHTML(w)}</span></div>`
+    ).join('');
+
+    const altsHTML = (data.alternatives || []).map(a =>
+      `<div class="ai-alt-item" onclick="document.getElementById('title-rating-input').value=this.dataset.title;updateCharCount('title-rating-input','title-rating-char',140);" data-title="${escapeHTML(a)}">${escapeHTML(a)}</div>`
+    ).join('');
+
+    resultEl.innerHTML = `<div class="ai-result">
+      <div class="ai-score-row">
+        <span class="ai-score-badge ${cls}">${sc}/10</span>
+        <div>
+          <div class="ai-score-label">${escapeHTML(data.verdict || '')}</div>
+          <div class="ai-score-sublabel">${escapeHTML(title.slice(0,60))}${title.length>60?'…':''}</div>
+        </div>
+      </div>
+      ${dimsHTML ? `<div style="margin-bottom:14px;">${dimsHTML}</div>` : ''}
+      ${strengthsHTML ? `<div class="ai-section"><div class="ai-section-head">Strengths</div>${strengthsHTML}</div>` : ''}
+      ${weaknessHTML ? `<div class="ai-section"><div class="ai-section-head">Weaknesses</div>${weaknessHTML}</div>` : ''}
+      ${altsHTML ? `<div class="ai-alternatives"><div class="ai-alt-head">Click to try an alternative</div>${altsHTML}</div>` : ''}
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-faint);font-family:var(--mono);">✦ Rated by Claude</div>
+    </div>`;
+  } catch (e) {
+    resultEl.innerHTML = `<div class="notice warn">Rating failed: ${escapeHTML(e.message)}</div>`;
+    log('Title rating failed: ' + e.message, 'warn');
+  }
+});
+
+// ── Fetch channel description ──
+document.getElementById('fetch-description-btn').addEventListener('click', async () => {
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  if (!saved.token || !saved.client || !saved.user) {
+    document.getElementById('fetch-desc-status').textContent = 'Sign in first to fetch your description.';
+    return;
+  }
+  const statusEl = document.getElementById('fetch-desc-status');
+  statusEl.textContent = 'Fetching…';
+  try {
+    const res = await helixRaw(`/channels?broadcaster_id=${saved.user.id}`, saved.client, saved.token);
+    const ch = res.data && res.data[0];
+    const desc = ch?.description || '';
+    const input = document.getElementById('channel-description-input');
+    if (input) {
+      input.value = desc || '(No description set on this channel)';
+      updateCharCount('channel-description-input', 'desc-char', 3000);
+    }
+    statusEl.textContent = desc ? `Fetched (${desc.length} chars)` : 'No description found.';
+  } catch (e) {
+    statusEl.textContent = 'Fetch failed: ' + e.message;
+    log('Description fetch failed: ' + e.message, 'warn');
+  }
+});
+
+// ── Channel Description Analysis ──
+document.getElementById('desc-analysis-btn').addEventListener('click', async () => {
+  const desc = (document.getElementById('channel-description-input').value || '').trim();
+  if (!desc) return;
+  if (!isAIUnlocked()) {
+    alert('Configure your Claude API key in the Audio Analysis tab first.');
+    return;
+  }
+  const resultEl = document.getElementById('desc-analysis-result');
+  resultEl.style.display = '';
+  resultEl.innerHTML = '<div class="ai-result"><div class="ai-result-loading"><div class="ai-spinner"></div> Analysing description…</div></div>';
+
+  const system = `You are a Twitch channel growth expert. Analyse channel descriptions and return ONLY valid JSON — no other text.
+Return: { "score": 1-10, "verdict": "one sentence", "dimensions": [ { "name": string, "score": 1-10, "note": string } ], "strengths": [string], "issues": [string], "rewrite": "improved version of the description (plain text, max 300 chars)" }
+Dimensions: Discoverability, Tone, Call-to-action, Keyword clarity, Completeness.
+The rewrite should be a genuinely improved version the streamer can copy directly.`;
+
+  const user = `Analyse this Twitch channel description:\n\n"${desc}"`;
+
+  try {
+    const raw = await callClaude(system, user, 900);
+    const data = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    const sc = data.score || 0;
+    const cls = sc >= 7 ? 'great' : sc >= 5 ? 'ok' : 'poor';
+
+    const dimsHTML = (data.dimensions || []).map(d => {
+      const dcls = d.score >= 7 ? 'great' : d.score >= 5 ? 'ok' : 'poor';
+      return `<div class="ai-dimension-row">
+        <span class="ai-dim-label">${escapeHTML(d.name)}</span>
+        <span class="ai-dim-score ${dcls}">${d.score}/10</span>
+        <span style="font-size:12px;color:var(--ink-dim);flex:2;text-align:right;">${escapeHTML(d.note||'')}</span>
+      </div>`;
+    }).join('');
+
+    const strengthsHTML = (data.strengths || []).map(s =>
+      `<div style="display:flex;gap:6px;font-size:13px;margin-bottom:4px;"><span style="color:var(--success);">✓</span><span>${escapeHTML(s)}</span></div>`
+    ).join('');
+    const issuesHTML = (data.issues || []).map(w =>
+      `<div style="display:flex;gap:6px;font-size:13px;margin-bottom:4px;"><span style="color:var(--danger);">✗</span><span>${escapeHTML(w)}</span></div>`
+    ).join('');
+
+    const rewriteHTML = data.rewrite ? `
+      <div class="ai-section">
+        <div class="ai-section-head">Suggested rewrite</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;font-size:13px;line-height:1.6;color:var(--ink);margin-bottom:8px;">${escapeHTML(data.rewrite)}</div>
+        <button class="ghost small" onclick="document.getElementById('channel-description-input').value=${JSON.stringify(data.rewrite)};updateCharCount('channel-description-input','desc-char',3000);">Use this rewrite</button>
+      </div>` : '';
+
+    resultEl.innerHTML = `<div class="ai-result">
+      <div class="ai-score-row">
+        <span class="ai-score-badge ${cls}">${sc}/10</span>
+        <div>
+          <div class="ai-score-label">${escapeHTML(data.verdict || '')}</div>
+          <div class="ai-score-sublabel">${desc.length} chars analysed</div>
+        </div>
+      </div>
+      ${dimsHTML ? `<div style="margin-bottom:14px;">${dimsHTML}</div>` : ''}
+      ${strengthsHTML ? `<div class="ai-section"><div class="ai-section-head">Strengths</div>${strengthsHTML}</div>` : ''}
+      ${issuesHTML ? `<div class="ai-section"><div class="ai-section-head">Issues</div>${issuesHTML}</div>` : ''}
+      ${rewriteHTML}
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-faint);font-family:var(--mono);">✦ Analysed by Claude</div>
+    </div>`;
+  } catch (e) {
+    resultEl.innerHTML = `<div class="notice warn">Analysis failed: ${escapeHTML(e.message)}</div>`;
+    log('Description analysis failed: ' + e.message, 'warn');
+  }
 });
 
 // ===============================================
@@ -4314,32 +5171,55 @@ async function runAnalysis(vodId) {
       runDenseAudioScan(id, duration, clips).catch(e => log('Dense audio scan failed: ' + e.message, 'warn'));
     }
 
-    // Step 6: Save analysis to history
-    const binSec60 = 60;
-    const nBins60 = Math.ceil(duration / binSec60);
-    const bins60 = new Array(nBins60).fill(0);
-    comments.forEach(c => { const i = Math.floor(c.t / binSec60); if (i >= 0 && i < nBins60) bins60[i]++; });
-    const deadPctSave = nBins60 > 0 ? (bins60.filter(b => b < 2).length / nBins60) * 100 : 0;
-    const cpmSave = duration > 0 ? comments.length / (duration / 60) : 0;
-    const uniqueSave = new Set(comments.map(c => c.user)).size;
-    const uniqueRatioSave = comments.length > 0 ? uniqueSave / comments.length : 0;
-    const echoCountSave = (audio && !audio.blocked && audio.results)
-      ? audio.results.filter(r => r.echo).length : -1;
-    const notes = generateImprovementNotes({ duration }, comments, clips, audio);
-    saveAnalysis({
-      vodId: id,
-      vodTitle: v.title || '(untitled)',
-      channelName,
-      savedAt: Date.now(),
-      duration,
-      cpm: cpmSave,
-      deadPct: deadPctSave,
-      uniqueRatio: uniqueRatioSave,
-      clipCount: clips.length,
-      echoCount: echoCountSave,
-      loudnessMean: audio && audio.loudness ? audio.loudness.meanDbFS : null,
-      notes,
-    });
+    // Step 6: Save analysis to history — only for the logged-in user's own channel
+    const saved6 = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    const loggedInLogin = saved6.user?.login || '';
+    const isOwnChannel = loggedInLogin && channelName && loggedInLogin.toLowerCase() === channelName.toLowerCase();
+    if (isOwnChannel) {
+      const binSec60 = 60;
+      const nBins60 = Math.ceil(duration / binSec60);
+      const bins60 = new Array(nBins60).fill(0);
+      comments.forEach(c => { const i = Math.floor(c.t / binSec60); if (i >= 0 && i < nBins60) bins60[i]++; });
+      const deadPctSave = nBins60 > 0 ? (bins60.filter(b => b < 2).length / nBins60) * 100 : 0;
+      const cpmSave = duration > 0 ? comments.length / (duration / 60) : 0;
+      const uniqueSave = new Set(comments.map(c => c.user)).size;
+      const uniqueRatioSave = comments.length > 0 ? uniqueSave / comments.length : 0;
+      const echoCountSave = (audio && !audio.blocked && audio.results)
+        ? audio.results.filter(r => r.echo).length : -1;
+      const notes = generateImprovementNotes({ duration }, comments, clips, audio);
+      saveAnalysis({
+        vodId: id,
+        vodTitle: v.title || '(untitled)',
+        channelName,
+        savedAt: Date.now(),
+        duration,
+        cpm: cpmSave,
+        deadPct: deadPctSave,
+        uniqueRatio: uniqueRatioSave,
+        clipCount: clips.length,
+        echoCount: echoCountSave,
+        loudnessMean: audio && audio.loudness ? audio.loudness.meanDbFS : null,
+        notes,
+      });
+    } else {
+      log(`History not saved — analysing ${channelName || 'unknown channel'} (not your own channel).`, 'warn');
+    }
+
+    // Step 7: AI-enhanced improvement notes — background, non-blocking
+    // Only fires if Claude API key is configured and this is the user's own channel.
+    // Falls back to rule-based notes silently on failure.
+    if (isAIUnlocked() && isOwnChannel) {
+      runAIImprovementNotes({ duration }, comments, clips, audio, improvNotes)
+        .catch(e => log('AI notes background error: ' + e.message, 'warn'));
+    }
+
+    // Step 8: AI-enhanced feedback list — background, non-blocking.
+    // Replaces the templated feedback items with Claude's contextual analysis.
+    // Fires for any channel when AI is unlocked (not limited to own-channel).
+    if (isAIUnlocked()) {
+      runAIFeedback({ duration }, comments, clips, audio, feedback)
+        .catch(e => log('AI feedback background error: ' + e.message, 'warn'));
+    }
 
     log('Analysis complete.', 'ok');
   } catch (e) {
