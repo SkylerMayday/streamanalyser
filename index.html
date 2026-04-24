@@ -1374,7 +1374,7 @@
         </div>
         <!-- Shared player for high score tab -->
         <div id="studio-hs-player" style="display:none; margin-bottom: 20px;">
-          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;max-width:640px;">
+          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;width:100%;">
             <iframe id="studio-hs-iframe" title="High score clip preview" allowfullscreen="true" scrolling="no" src="" style="width:100%;height:100%;border:none;"></iframe>
           </div>
           <div id="studio-hs-detail" style="margin-top: 12px;"></div>
@@ -1389,7 +1389,7 @@
         </div>
         <!-- Shared player for chat tab -->
         <div id="studio-chat-player" style="display:none; margin-bottom: 20px;">
-          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;max-width:640px;">
+          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;width:100%;">
             <iframe id="studio-chat-iframe" title="Chat clip preview" allowfullscreen="true" scrolling="no" src="" style="width:100%;height:100%;border:none;"></iframe>
           </div>
           <div id="studio-chat-detail" style="margin-top: 12px;"></div>
@@ -1404,7 +1404,7 @@
         </div>
         <!-- Shared player for audio tab -->
         <div id="studio-audio-player" style="display:none; margin-bottom: 20px;">
-          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;max-width:640px;">
+          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;width:100%;">
             <iframe id="studio-audio-iframe" title="Audio clip preview" allowfullscreen="true" scrolling="no" src="" style="width:100%;height:100%;border:none;"></iframe>
           </div>
           <div id="studio-audio-detail" style="margin-top: 12px;"></div>
@@ -1502,7 +1502,7 @@
           <button class="tier-btn" data-tier="201-1000">201–1000 CCV</button>
           <button class="tier-btn" data-tier="1000+">1000+ CCV</button>
         </div>
-        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);">Saved to your browser. Used to contextualise benchmark metrics against streamers at a similar stage.</p>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);" data-tier-note>Saved to your browser. Used to contextualise benchmark metrics against streamers at a similar stage.</p>
       </div>
 
       <div class="card">
@@ -1701,6 +1701,8 @@ function showLoggedIn(user) {
   if (chanInput && !chanInput.value) chanInput.value = user.login;
   // Auto-load their VODs
   loadVodsForChannel(user.login).catch(e => log('VOD load failed: ' + e.message, 'err'));
+  // Attempt CCV tier estimation from chat velocity of recent VODs
+  autoEstimateCCVTier(user.login).catch(() => {});
 }
 
 function showLoggedOut() {
@@ -1734,6 +1736,84 @@ function handleAuthCallback() {
   history.replaceState(null, '', window.location.pathname + window.location.search);
   log('Signed in.', 'ok');
   return true;
+}
+
+// ---- CCV tier auto-estimation ----
+// Twitch deprecated VOD view_count in May 2024 (always returns 0).
+// Best available proxy: sample chat velocity from the user's last 3 VODs
+// and map msg/min → typical CCV tier using the same TIER_BENCHMARKS thresholds.
+// This is a rough heuristic — chat/CCV ratio varies ~5–20× across streamers —
+// but it's directionally correct and far better than nothing.
+// Only fires if no tier is already saved.
+async function autoEstimateCCVTier(channelLogin) {
+  const saved = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+  if (saved.ccvTier) return; // already set — don't override user choice
+
+  try {
+    // Fetch last 3 VODs
+    const vods = await fetchChannelVods(channelLogin);
+    if (!vods.length) return;
+    const recent = vods.slice(0, 3);
+
+    // For each VOD, fetch a single page of chat (first ~40 msgs) to get
+    // a quick velocity estimate from just the first segment of the VOD.
+    // Cheap: 3 GQL calls, no full replay needed.
+    const velocities = [];
+    for (const v of recent) {
+      try {
+        const body = [{
+          operationName: 'VideoCommentsByOffsetOrCursor',
+          variables: { videoID: v.id, contentOffsetSeconds: 0 },
+          extensions: { persistedQuery: {
+            version: 1,
+            sha256Hash: 'b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a'
+          }}
+        }];
+        const j = await gql(body);
+        const res = j[0]?.data?.video?.comments;
+        if (!res) continue;
+        const edges = res.edges || [];
+        if (edges.length < 5) continue;
+        // Measure chat velocity over the window spanned by this page
+        const times = edges.map(e => e.node?.contentOffsetSeconds || 0);
+        const span = Math.max(1, times[times.length - 1] - times[0]);
+        const cpm = (edges.length / span) * 60;
+        if (cpm > 0) velocities.push(cpm);
+      } catch {}
+    }
+    if (!velocities.length) return;
+
+    const avgCpm = velocities.reduce((a, b) => a + b, 0) / velocities.length;
+
+    // Map chat velocity → likely CCV tier.
+    // Rough calibration: ~0.5–2 msg/min per concurrent viewer is typical for
+    // small streamers; ratios compress as channels grow.
+    // These thresholds were chosen so median-engagement streamers land in the
+    // right tier — adjust if you have better data.
+    let estimatedTier;
+    if (avgCpm < 1.5)       estimatedTier = '0-10';
+    else if (avgCpm < 5)    estimatedTier = '11-50';
+    else if (avgCpm < 15)   estimatedTier = '51-200';
+    else if (avgCpm < 50)   estimatedTier = '201-1000';
+    else                    estimatedTier = '1000+';
+
+    const creds = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    if (creds.ccvTier) return; // double-check in case user set it while we were fetching
+    creds.ccvTier = estimatedTier;
+    creds.ccvTierEstimated = true; // flag so we can show "estimated" label
+    localStorage.setItem('vodDeskCreds', JSON.stringify(creds));
+
+    // Update tier selector UI
+    document.querySelectorAll('.tier-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tier === estimatedTier);
+    });
+    // Update sub-label
+    const note = document.querySelector('[data-tier-note]');
+    if (note) note.textContent = `Auto-estimated from your recent chat velocity (${avgCpm.toFixed(1)} msg/min avg). Override any time.`;
+    log(`CCV tier estimated: ${estimatedTier} (avg chat velocity ${avgCpm.toFixed(1)} msg/min from ${velocities.length} VODs)`, 'ok');
+  } catch (e) {
+    log('CCV tier estimation failed: ' + e.message, 'warn');
+  }
 }
 
 async function bootstrapIfLoggedIn() {
@@ -3006,6 +3086,19 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
 // Studio inner tab switching
 // ===============================================
 function switchStudioTab(name) {
+  // Blank out the iframe of the currently-visible tab to stop playback
+  // and prevent its active-tile highlight from persisting visually.
+  ['highscore', 'chat', 'audio'].forEach(k => {
+    const panel = document.getElementById('studio-panel-' + k);
+    if (!panel || panel.style.display === 'none') return;
+    const tabSuffix = k === 'highscore' ? 'hs' : k;
+    const iframe = document.getElementById('studio-' + tabSuffix + '-iframe');
+    if (iframe) iframe.src = '';
+    // Clear active state on all tiles in outgoing tab
+    const grid = panel.querySelector('.studio-tile-grid');
+    if (grid) grid.querySelectorAll('.studio-tile').forEach(t => t.classList.remove('active'));
+  });
+
   document.querySelectorAll('.studio-tab-btn').forEach(b => {
     const active = b.dataset.studio === name;
     b.style.color = active ? 'var(--ink)' : 'var(--ink-dim)';
@@ -3042,20 +3135,24 @@ function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuratio
     return;
   }
 
-  const playerEl = document.getElementById('studio-' + tabKey.replace('highscore','hs') + '-player');
-  const iframeEl = document.getElementById('studio-' + tabKey.replace('highscore','hs') + '-iframe');
-  const detailEl = document.getElementById('studio-' + tabKey.replace('highscore','hs') + '-detail');
+  const tabSuffix = tabKey === 'highscore' ? 'hs' : tabKey;
+  const playerEl = document.getElementById('studio-' + tabSuffix + '-player');
+  const iframeEl = document.getElementById('studio-' + tabSuffix + '-iframe');
+  const detailEl = document.getElementById('studio-' + tabSuffix + '-detail');
 
-  // Score ceiling for normalised bar (use max of this set)
-  const maxScore = Math.max(...clips.map(c => c.score), 1);
+  // For highscore clips, normScore is the absolute 0–10 value used for filtering.
+  // For chat/audio tabs, fall back to relative normalisation within the set.
+  const hasAbsoluteScore = clips.every(c => c.normScore != null);
+  const maxScore = hasAbsoluteScore ? 10 : Math.max(...clips.map(c => c.score), 1);
 
   gridEl.innerHTML = clips.map((c, i) => {
-    const scorePct = Math.min(100, (c.score / maxScore) * 100);
-    const scoreDisplay = Math.round((c.score / maxScore) * 10) + '/10';
+    const displayScore = hasAbsoluteScore ? c.normScore : (c.score / maxScore) * 10;
+    const scorePct = Math.min(100, (displayScore / 10) * 100);
+    const scoreDisplay = displayScore.toFixed(1) + '/10';
     const hasChatBadge = c.z > 1.5 || (!c.isAudioClip && c.score > 0);
     const hasAudioBadge = c.audioBoost > 0.5 || c.isAudioClip;
     return `
-      <button class="studio-tile${i === 0 ? ' active' : ''}" data-tile-idx="${i}" data-tab-key="${tabKey}">
+      <button class="studio-tile" data-tile-idx="${i}" data-tab-key="${tabKey}">
         <div class="studio-tile-rank">№ ${String(i+1).padStart(2,'0')}</div>
         <div class="studio-tile-ts">${fmtDur(c.start)}</div>
         <div class="studio-tile-score-bar"><div class="studio-tile-score-fill" style="width:${scorePct.toFixed(1)}%"></div></div>
@@ -3068,7 +3165,6 @@ function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuratio
     `;
   }).join('');
 
-  // Load player for first clip immediately (autoplay)
   function loadTilePlayer(clip, idx, autoplay) {
     if (!playerEl || !iframeEl) return;
     playerEl.style.display = '';
@@ -3085,7 +3181,7 @@ function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuratio
         `<span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML((m.msg||'').slice(0,80))}`
       ).join('<br>');
       detailEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
           <span style="font-family:var(--mono);font-size:15px;font-weight:700;">${fmtDur(clip.start)}</span>
           <span style="font-size:13px;color:var(--ink-dim);">${Math.round(clip.end - clip.start)}s window</span>
           ${clip.audioBoost > 0.5 || clip.isAudioClip ? '<span class="clip-source-tag audio">🔊 audio peak</span>' : ''}
@@ -3096,16 +3192,16 @@ function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuratio
         ${sampleHTML ? `<div class="clip-chat-sample" style="margin:0;">${sampleHTML}</div>` : ''}
       `;
     }
-    // Highlight active tile
+    // Highlight active tile — scoped strictly to this grid
     gridEl.querySelectorAll('.studio-tile').forEach((t, ti) => t.classList.toggle('active', ti === idx));
   }
 
-  // Auto-load first clip (autoplay only on very first render of this tab)
-  loadTilePlayer(clips[0], 0, tabKey !== 'chat'); // autoplay on highscore + audio, not chat (avoids annoying autoplay on analysis complete)
+  // First render: load player WITHOUT autoplay (user must click to play)
+  loadTilePlayer(clips[0], 0, false);
 
   gridEl.querySelectorAll('.studio-tile').forEach((tile, idx) => {
     tile.addEventListener('click', () => {
-      loadTilePlayer(clips[idx], idx, false);
+      loadTilePlayer(clips[idx], idx, true); // autoplay on explicit tile click
     });
   });
 }
@@ -3139,7 +3235,8 @@ function buildAndRenderHighScoreClips(chatClips, audioClips, vodId, channelName,
     if (merged.length >= 15) break;
   }
 
-  // Store
+  // Store — already descending by normScore (dedup preserves sort order)
+  merged.sort((a, b) => b.normScore - a.normScore);
   window.__studioClips['highscore'] = merged;
 
   const intro = $('#highscore-clips-intro');
@@ -3187,9 +3284,17 @@ document.querySelectorAll('.inner-tab-btn').forEach(btn => {
       btn.classList.add('active');
       const creds = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
       creds.ccvTier = btn.dataset.tier;
+      delete creds.ccvTierEstimated; // manual override clears estimated flag
       localStorage.setItem('vodDeskCreds', JSON.stringify(creds));
+      const note = document.querySelector('[data-tier-note]');
+      if (note) note.textContent = 'Saved to your browser. Used to contextualise benchmark metrics against streamers at a similar stage.';
     });
   });
+  // Restore estimated label if applicable
+  if (saved.ccvTierEstimated && activeTier) {
+    const note = document.querySelector('[data-tier-note]');
+    if (note) note.textContent = `Auto-estimated from your recent chat velocity. Override any time by clicking a tier above.`;
+  }
 })();
 
 // ===============================================
@@ -3330,6 +3435,48 @@ function generateImprovementNotes(meta, comments, clips, audio) {
 // ===============================================
 // History rendering
 // ===============================================
+
+// Scan history for improvement note patterns that appear in ≥30% of entries.
+// Returns array of { text, count, pct } for patterns that cross the threshold.
+function detectFrequentFeedback(history) {
+  if (history.length < 2) return [];
+
+  // Key patterns matched against note text (stripped HTML)
+  // Each pattern: { id, label, match: RegExp }
+  const PATTERNS = [
+    { id: 'dead_air_high',   label: 'Recurring quiet stretches (dead-air > 20%)', match: /break up the quiet|reduce quiet minutes|dead.air/i },
+    { id: 'low_cpm',        label: 'Recurring low chat velocity', match: /drive more chat interaction|chat velocity was.*msg\/min/i },
+    { id: 'clipping',       label: 'Recurring audio clipping', match: /fix clipping/i },
+    { id: 'echo',           label: 'Recurring audio echo', match: /resolve the audio echo/i },
+    { id: 'low_mic',        label: 'Recurring quiet mic level', match: /raise your mic level/i },
+    { id: 'few_moments',    label: 'Recurring shortage of clip-worthy moments', match: /create more.*moment/i },
+    { id: 'short_stream',   label: 'Recurring short stream duration', match: /stream longer/i },
+    { id: 'dominated_chat', label: 'Recurring chat dominated by few users', match: /chat is dominated/i },
+  ];
+
+  const counts = {};
+  PATTERNS.forEach(p => { counts[p.id] = 0; });
+
+  history.forEach(r => {
+    const seenInSession = new Set();
+    (r.notes || []).forEach(n => {
+      const txt = (n.text || '').replace(/<[^>]+>/g, '');
+      PATTERNS.forEach(p => {
+        if (!seenInSession.has(p.id) && p.match.test(txt)) {
+          counts[p.id]++;
+          seenInSession.add(p.id);
+        }
+      });
+    });
+  });
+
+  const total = history.length;
+  return PATTERNS
+    .filter(p => counts[p.id] / total >= 0.30)
+    .map(p => ({ label: p.label, count: counts[p.id], pct: Math.round((counts[p.id] / total) * 100) }))
+    .sort((a, b) => b.pct - a.pct);
+}
+
 function renderHistoryList() {
   const history = loadHistory();
   const listEl = document.getElementById('history-list');
@@ -3347,7 +3494,22 @@ function renderHistoryList() {
   countEl.textContent = `${history.length} analysis${history.length === 1 ? '' : 'es'} saved.`;
   clearBtn.style.display = '';
 
-  listEl.innerHTML = history.map((r, i) => {
+  // Recurring feedback block (≥30% threshold)
+  const frequent = detectFrequentFeedback(history);
+  const recurringHTML = frequent.length ? `
+    <div style="background:var(--danger-soft);border:1px solid var(--danger);border-radius:var(--r-md);padding:14px 16px;margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--danger);margin-bottom:8px;">⚠ Recurring issues across your streams</div>
+      ${frequent.map(f => `
+        <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(185,28,28,0.15);font-size:13px;color:var(--ink-2);">
+          <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--danger);min-width:36px;">${f.pct}%</span>
+          <span>${f.label}</span>
+          <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-faint);">${f.count}/${history.length} streams</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  listEl.innerHTML = recurringHTML + history.map((r, i) => {
     const date = new Date(r.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     const time = new Date(r.savedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
@@ -3373,12 +3535,6 @@ function renderHistoryList() {
       metrics.push(`<span class="history-metric bad">echo detected</span>`);
     }
 
-    // Show top improvement note inline
-    const topNote = r.notes && r.notes[0];
-    const noteHTML = topNote
-      ? `<div style="font-size:13px;color:var(--ink-2);margin-top:8px;line-height:1.5;border-left:3px solid var(--border);padding-left:10px;">${topNote.text}</div>`
-      : '';
-
     return `
       <div class="history-item" data-history-idx="${i}">
         <div class="history-item-head">
@@ -3386,30 +3542,10 @@ function renderHistoryList() {
           <span class="history-item-date">${date} ${time}</span>
         </div>
         <div class="history-metrics">${metrics.join('')}</div>
-        ${noteHTML}
-        <div style="margin-top:10px;">
-          <button class="ghost small" data-expand-history="${i}" style="font-size:12px;">
-            ${r._expanded ? '▲ Collapse' : '▼ All notes'}
-          </button>
-        </div>
-        <div id="history-notes-${i}" style="display:${r._expanded ? '' : 'none'};">
-          ${renderImprovementNotesList(r.notes || [])}
-        </div>
+        ${renderImprovementNotesList(r.notes || [])}
       </div>
     `;
   }).join('');
-
-  // Wire expand/collapse
-  listEl.querySelectorAll('button[data-expand-history]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const idx = +btn.dataset.expandHistory;
-      const notesEl = document.getElementById('history-notes-' + idx);
-      const expanded = notesEl.style.display !== 'none';
-      notesEl.style.display = expanded ? 'none' : '';
-      btn.textContent = expanded ? '▼ All notes' : '▲ Collapse';
-    });
-  });
 }
 
 function renderImprovementNotesList(notes) {
@@ -3604,7 +3740,7 @@ async function runAnalysis(vodId) {
     setPill('pill-clips', 'Clips · scoring', 'busy');
     const clips = scoreClips(comments, duration, audioMoments);
     log(`Ranked ${clips.length} candidate moments.`, 'ok');
-    setPill('pill-clips', `Clips · ${clips.length} found`, 'ok');
+    setPill('pill-clips', `Clips · available in Studio`, 'ok');
 
     // Set up caption audio source (only if audio unlocked + probe succeeded)
     if (audio && !audio.blocked && audio.audioContext) {
