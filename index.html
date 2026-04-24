@@ -1037,6 +1037,146 @@
   .inner-panel { display: none; }
   .inner-panel.active { display: block; }
 
+  /* PRE-STREAM CHECKLIST MODAL */
+  .checklist-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px 40px;
+    overflow-y: auto;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .checklist-overlay[hidden] { display: none; }
+  .checklist-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 20px 60px -10px rgba(0,0,0,0.25);
+    animation: checklist-in 0.2s ease;
+  }
+  @keyframes checklist-in {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .checklist-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .checklist-header h2 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0;
+  }
+  .checklist-header .checklist-subtitle {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .checklist-close {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--ink-dim);
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .checklist-close:hover { color: var(--ink); background: var(--border); }
+  .checklist-body {
+    padding: 20px 24px 24px;
+  }
+  .checklist-section-head {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-dim);
+    margin: 18px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .checklist-section-head:first-child { margin-top: 0; }
+  .checklist-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-checkbox {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border-strong);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    transition: all 0.12s;
+    font-size: 11px;
+    color: white;
+    user-select: none;
+  }
+  .checklist-item.done .checklist-checkbox {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .checklist-item.done .checklist-text {
+    text-decoration: line-through;
+    color: var(--ink-faint);
+  }
+  .checklist-text {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .checklist-text strong { color: var(--accent-dark); font-weight: 600; }
+  .checklist-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .checklist-tag.recurring { background: var(--danger-soft); color: var(--danger); }
+  .checklist-tag.last { background: var(--warning-soft); color: var(--warning); }
+  .checklist-tag.always { background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--border); }
+  .checklist-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .checklist-progress-text {
+    font-size: 13px;
+    color: var(--ink-dim);
+    font-family: var(--mono);
+  }
+
   /* HISTORY CARDS */
   .history-empty {
     padding: 40px 20px;
@@ -1508,9 +1648,13 @@
       <div class="card">
         <h2>Stream history</h2>
         <p class="subtitle">Last 50 analyses, saved in your browser. Closes when you clear browser data.</p>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
           <span id="history-count" style="font-size: 13px; color: var(--ink-dim);">No analyses saved yet.</span>
-          <button class="ghost small" id="history-clear" style="display:none;">Clear history</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="ghost small" id="prestream-checklist-btn" style="display:none;">✅ Pre-stream checklist</button>
+            <button class="ghost small" id="export-history-csv" style="display:none;">⬇ Export CSV</button>
+            <button class="ghost small" id="history-clear" style="display:none;">Clear history</button>
+          </div>
         </div>
         <div id="history-list"></div>
       </div>
@@ -1520,6 +1664,27 @@
   </div>
 
 </main>
+
+<!-- PRE-STREAM CHECKLIST MODAL -->
+<div class="checklist-overlay" id="checklist-overlay" hidden>
+  <div class="checklist-modal" role="dialog" aria-modal="true" aria-labelledby="checklist-title">
+    <div class="checklist-header">
+      <div>
+        <h2 id="checklist-title">🟢 Pre-stream checklist</h2>
+        <div class="checklist-subtitle" id="checklist-subtitle">Based on your stream history</div>
+      </div>
+      <button class="checklist-close" id="checklist-close" aria-label="Close">✕</button>
+    </div>
+    <div class="checklist-body" id="checklist-body"></div>
+    <div class="checklist-footer">
+      <span class="checklist-progress-text" id="checklist-progress">0 / 0 checked</span>
+      <div style="display:flex;gap:8px;">
+        <button class="ghost small" id="checklist-reset">Reset</button>
+        <button class="primary" id="checklist-close-footer">Done — go live 🔴</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- LOG DRAWER (debug, collapsed by default) -->
 <button class="log-toggle" id="log-toggle">View log</button>
@@ -3591,12 +3756,20 @@ function renderHistoryList() {
   if (!history.length) {
     countEl.textContent = 'No analyses saved yet. Run an analysis on the Dashboard to start building your history.';
     clearBtn.style.display = 'none';
+    const exportBtn = document.getElementById('export-history-csv');
+    const checklistBtn = document.getElementById('prestream-checklist-btn');
+    if (exportBtn) exportBtn.style.display = 'none';
+    if (checklistBtn) checklistBtn.style.display = 'none';
     listEl.innerHTML = '';
     return;
   }
 
   countEl.textContent = `${history.length} analysis${history.length === 1 ? '' : 'es'} saved.`;
   clearBtn.style.display = '';
+  const exportBtnShow = document.getElementById('export-history-csv');
+  const checklistBtnShow = document.getElementById('prestream-checklist-btn');
+  if (exportBtnShow) exportBtnShow.style.display = '';
+  if (checklistBtnShow) checklistBtnShow.style.display = '';
 
   // Recurring feedback block (≥30% threshold)
   const frequent = detectFrequentFeedback(history);
@@ -3679,6 +3852,229 @@ document.querySelectorAll('.inner-tab-btn').forEach(btn => {
   if (btn.dataset.inner === 'stream-history') {
     btn.addEventListener('click', renderHistoryList);
   }
+});
+
+// ===============================================
+// CSV Export
+// ===============================================
+function exportHistoryCSV() {
+  const history = loadHistory();
+  if (!history.length) return;
+
+  const cols = [
+    'vodId', 'vodTitle', 'channelName', 'savedAt',
+    'duration', 'cpm', 'deadPct', 'uniqueRatio',
+    'clipCount', 'echoCount', 'loudnessMean', 'topImprovementNote'
+  ];
+
+  function csvCell(v) {
+    if (v == null) return '';
+    const s = String(v);
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  const rows = [cols.join(',')];
+  history.forEach(r => {
+    const topNote = r.notes && r.notes[0]
+      ? (r.notes[0].text || '').replace(/<[^>]+>/g, '').trim()
+      : '';
+    const savedAtISO = r.savedAt ? new Date(r.savedAt).toISOString() : '';
+    rows.push([
+      r.vodId,
+      r.vodTitle,
+      r.channelName,
+      savedAtISO,
+      r.duration != null ? Math.round(r.duration) : '',
+      r.cpm != null ? r.cpm.toFixed(2) : '',
+      r.deadPct != null ? r.deadPct.toFixed(1) : '',
+      r.uniqueRatio != null ? r.uniqueRatio.toFixed(3) : '',
+      r.clipCount != null ? r.clipCount : '',
+      r.echoCount != null ? r.echoCount : '',
+      r.loudnessMean != null ? r.loudnessMean.toFixed(1) : '',
+      topNote,
+    ].map(csvCell).join(','));
+  });
+
+  const blob = new Blob([rows.join('\r\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'stream-history.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+}
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'export-history-csv') exportHistoryCSV();
+});
+
+// ===============================================
+// Pre-stream checklist
+// ===============================================
+
+// Always-on items that every streamer should check before going live.
+// These appear regardless of history — foundational hygiene baseline.
+const ALWAYS_CHECKLIST = [
+  { text: 'Open OBS and confirm <strong>scenes and sources</strong> are loading correctly.', tag: 'always' },
+  { text: 'Test your <strong>mic and audio levels</strong> — speak at stream volume, check the meter hits -14 to -12 dBFS.', tag: 'always' },
+  { text: 'Confirm <strong>game / desktop audio</strong> is routed and not too loud vs mic.', tag: 'always' },
+  { text: 'Check your <strong>stream title and category</strong> are set on Twitch.', tag: 'always' },
+  { text: 'Have <strong>2–3 fallback topics or questions</strong> ready to prompt chat when things go quiet.', tag: 'always' },
+];
+
+function buildChecklist() {
+  const history = loadHistory();
+
+  // Recurring issues: patterns that fire in ≥30% of sessions
+  const frequent = detectFrequentFeedback(history);
+
+  // Last session's improvement notes (priority-ordered, HTML stripped)
+  const lastNotes = history.length
+    ? (history[0].notes || []).map(n => ({
+        text: (n.text || '').trim(),
+        tag: 'last'
+      }))
+    : [];
+
+  const items = [];
+
+  // 1. Recurring items (highest priority)
+  if (frequent.length) {
+    items.push({ type: 'section', label: `⚠ Recurring issues (${frequent.length}) — fix these before going live` });
+    // Map frequent patterns → actionable checklist items
+    const PATTERN_ACTIONS = {
+      'dead_air_high':   'Prepare a list of <strong>questions and topics</strong> to keep chat active during slow gameplay moments.',
+      'low_cpm':         'Actively <strong>read chat aloud and call viewers by name</strong> — this is the fastest lever for chat growth.',
+      'clipping':        'In OBS: Mic → Filters → add <strong>Limiter at −1 dB</strong> to prevent audio clipping.',
+      'echo':            'Use <strong>headphones instead of speakers</strong>, or check OBS desktop audio isn\'t doubled from capture card.',
+      'low_mic':         'Raise your <strong>mic gain</strong> in OBS until your speaking voice averages −16 to −14 dBFS.',
+      'few_moments':     'Plan at least <strong>one structured "moment" per hour</strong> — a challenge, giveaway, or viewer game.',
+      'short_stream':    'Aim for <strong>at least 90 minutes</strong> so Twitch\'s algorithm has time to surface your stream.',
+      'dominated_chat':  'Ask lurkers a direct question early: <strong>"What game are you playing right now?"</strong> pulls in the silent majority.',
+    };
+    const PATTERN_IDS = {
+      'Recurring quiet stretches': 'dead_air_high',
+      'Recurring low chat velocity': 'low_cpm',
+      'Recurring audio clipping': 'clipping',
+      'Recurring audio echo': 'echo',
+      'Recurring quiet mic level': 'low_mic',
+      'Recurring shortage of clip-worthy moments': 'few_moments',
+      'Recurring short stream duration': 'short_stream',
+      'Recurring chat dominated by few users': 'dominated_chat',
+    };
+    frequent.forEach(f => {
+      // Match label to pattern key
+      const key = Object.keys(PATTERN_IDS).find(k => f.label.includes(k.replace('Recurring ', '').split(' ')[0]));
+      const patKey = key ? PATTERN_IDS[key] : null;
+      const actionText = patKey && PATTERN_ACTIONS[patKey]
+        ? PATTERN_ACTIONS[patKey]
+        : `Address: <strong>${f.label}</strong> (appeared in ${f.pct}% of your streams).`;
+      items.push({ text: actionText + ` <em style="color:var(--ink-faint);font-size:12px;">${f.pct}% of streams</em>`, tag: 'recurring' });
+    });
+  }
+
+  // 2. Last session's improvement notes
+  if (lastNotes.length) {
+    const lastTitle = history[0].vodTitle ? `"${history[0].vodTitle}"` : 'your last stream';
+    items.push({ type: 'section', label: `From ${lastTitle}` });
+    lastNotes.forEach(n => items.push(n));
+  }
+
+  // 3. Always-on items
+  items.push({ type: 'section', label: 'Standard pre-stream checks' });
+  ALWAYS_CHECKLIST.forEach(i => items.push(i));
+
+  return items;
+}
+
+function renderChecklistModal() {
+  const items = buildChecklist();
+  const body = document.getElementById('checklist-body');
+  if (!body) return;
+
+  // State: checked set (persisted in sessionStorage so reset works)
+  let checked;
+  try { checked = new Set(JSON.parse(sessionStorage.getItem('checklistChecked') || '[]')); }
+  catch { checked = new Set(); }
+
+  let itemIndex = 0;
+  const itemMap = []; // maps rendered index → items index for checkbox tracking
+
+  body.innerHTML = items.map((item, i) => {
+    if (item.type === 'section') {
+      return `<div class="checklist-section-head">${item.label}</div>`;
+    }
+    const idx = itemIndex++;
+    itemMap.push(i);
+    const isDone = checked.has(idx);
+    return `
+      <div class="checklist-item${isDone ? ' done' : ''}" data-ci="${idx}">
+        <div class="checklist-checkbox">${isDone ? '✓' : ''}</div>
+        <span class="checklist-text">${item.text}</span>
+        <span class="checklist-tag ${item.tag}">${item.tag === 'recurring' ? 'recurring' : item.tag === 'last' ? 'last stream' : 'always'}</span>
+      </div>
+    `;
+  }).join('');
+
+  const totalCheckable = itemIndex;
+
+  function updateProgress() {
+    const count = checked.size;
+    const p = document.getElementById('checklist-progress');
+    if (p) p.textContent = `${count} / ${totalCheckable} checked`;
+  }
+  updateProgress();
+
+  // Click handler for checkboxes
+  body.addEventListener('click', e => {
+    const row = e.target.closest('.checklist-item');
+    if (!row) return;
+    const idx = parseInt(row.dataset.ci, 10);
+    if (isNaN(idx)) return;
+    if (checked.has(idx)) {
+      checked.delete(idx);
+      row.classList.remove('done');
+      row.querySelector('.checklist-checkbox').textContent = '';
+    } else {
+      checked.add(idx);
+      row.classList.add('done');
+      row.querySelector('.checklist-checkbox').textContent = '✓';
+    }
+    sessionStorage.setItem('checklistChecked', JSON.stringify([...checked]));
+    updateProgress();
+  });
+}
+
+function openChecklistModal() {
+  const overlay = document.getElementById('checklist-overlay');
+  if (!overlay) return;
+  renderChecklistModal();
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeChecklistModal() {
+  const overlay = document.getElementById('checklist-overlay');
+  if (overlay) overlay.hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'prestream-checklist-btn') openChecklistModal();
+  if (e.target.id === 'checklist-close' || e.target.id === 'checklist-close-footer') closeChecklistModal();
+  if (e.target.id === 'checklist-reset') {
+    sessionStorage.removeItem('checklistChecked');
+    renderChecklistModal();
+  }
+  // Click outside modal to close
+  if (e.target.id === 'checklist-overlay') closeChecklistModal();
+});
+
+// Escape key closes modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChecklistModal();
 });
 
 // ===============================================
