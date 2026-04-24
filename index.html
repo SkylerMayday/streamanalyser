@@ -410,24 +410,33 @@
     padding: 2px 6px;
     border-radius: 4px;
   }
-  .vod-tile .tile-body { padding: 10px 12px 12px; }
+  .vod-tile .tile-body {
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    height: 76px; /* fixed height: 2-line title + meta row */
+  }
   .vod-tile .tile-title {
     font-size: 14px;
     font-weight: 500;
     line-height: 1.35;
     color: var(--ink);
-    margin-bottom: 6px;
+    margin-bottom: auto;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    min-height: 2.7em;
+    /* Exactly 2 lines regardless of content */
+    height: 2.7em;
+    flex-shrink: 0;
   }
   .vod-tile .tile-meta {
     font-size: 12px;
     color: var(--ink-dim);
     display: flex;
     justify-content: space-between;
+    flex-shrink: 0;
+    margin-top: 6px;
   }
   .vod-tile .tile-meta .views { color: var(--ink-2); font-weight: 500; }
 
@@ -1400,12 +1409,12 @@
           <button class="tier-btn" data-tier="201-1000">201–1000 CCV</button>
           <button class="tier-btn" data-tier="1000+">1000+ CCV</button>
         </div>
-        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);">Saved to your browser. Used in Session 2 when tier-specific benchmarks are added.</p>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);">Saved to your browser. Updates the benchmark card on the Dashboard with tier-specific reference ranges and calibration labels.</p>
       </div>
 
       <div class="card">
         <h2>Stream history</h2>
-        <p class="subtitle">Last 50 analyses, saved in your browser. Closes when you clear browser data.</p>
+        <p class="subtitle">Last 50 analyses, saved in your browser. Once you have 3+ analyses, a recurring issues summary appears automatically.</p>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
           <span id="history-count" style="font-size: 13px; color: var(--ink-dim);">No analyses saved yet.</span>
           <button class="ghost small" id="history-clear" style="display:none;">Clear history</button>
@@ -1757,12 +1766,11 @@ function renderVodPicker(vods) {
           ${typeBadge}
         </div>
         <div class="tile-body">
-          <div class="tile-title">${escapeHTML(title)}</div>
+          <div class="tile-title" title="${escapeHTML(title)}">${escapeHTML(title)}</div>
           <div class="tile-meta">
-            <span>${dateStr}</span>
+            <span>${dateStr}${!isArchive ? `&nbsp;<span style="color:var(--warning);font-size:10px;font-family:var(--mono);font-weight:600;">LIMITED CHAT</span>` : ''}</span>
             <span class="views">${nFmt(views)} views</span>
           </div>
-          ${chatNote}
         </div>
       </button>
     `;
@@ -2160,17 +2168,129 @@ function dedupClips(audioClips, chatClips, audioCandidates) {
 }
 
 // ===============================================
-// Benchmark reference card
+// Tier-specific benchmark data
 // ===============================================
-// Benchmark reference card
+// Hardcoded from StreamElements State of the Stream 2022–2024 and TwitchTracker
+// aggregates. Five tiers: 0-10, 11-50, 51-200, 201-1000, 1000+.
+// Each metric has five thresholds defining: excellent, good, average, below-average, poor.
+// "lower is better" metrics (dead-air, unique ratio inverted) are flagged with invert:true.
+// Stream length uses a range-based approach (lengthRange).
+const TIER_BENCHMARKS = {
+  '0-10': {
+    label: '0–10 CCV',
+    chatVelocity:  { excellent: 3,    good: 1.5,  avg: 0.8, belowAvg: 0.3, unit: 'msg/min',
+      note: 'Very small streams — a single active viewer skews the number. Focus on consistency over raw velocity.' },
+    deadAir:       { excellent: 30,   good: 45,   avg: 60,  belowAvg: 75,  invert: true, unit: '% quiet mins',
+      note: 'At low CCV, dead-air feels worse because there\'s no crowd noise to mask it. Keep talking even to zero viewers.' },
+    uniqueRatio:   { excellent: 0.55, good: 0.40, avg: 0.28, belowAvg: 0.15, unit: '% unique',
+      note: 'Healthy if one friend isn\'t driving all messages. Low ratios are common at this tier.' },
+    streamLength:  { sweet: [90*60, 3*3600], min: 30*60, max: 8*3600 },
+    clipDensity:   { excellent: 3,    good: 2,    avg: 1,   belowAvg: 0,   unit: 'moments',
+      note: 'Even 1–2 good moments per stream is enough to build a highlight library at this stage.' },
+  },
+  '11-50': {
+    label: '11–50 CCV',
+    chatVelocity:  { excellent: 8,    good: 4,    avg: 2,   belowAvg: 0.8, unit: 'msg/min',
+      note: 'StreamElements data: median chat velocity at this tier is 2–5 msg/min.' },
+    deadAir:       { excellent: 20,   good: 35,   avg: 50,  belowAvg: 65,  invert: true, unit: '% quiet mins',
+      note: 'Viewers start noticing dead-air at this tier. Aim for fewer than 35% quiet minutes.' },
+    uniqueRatio:   { excellent: 0.50, good: 0.38, avg: 0.28, belowAvg: 0.18, unit: '% unique',
+      note: 'A healthy mix of regulars and new viewers showing up.' },
+    streamLength:  { sweet: [90*60, 4*3600], min: 30*60, max: 8*3600 },
+    clipDensity:   { excellent: 5,    good: 3,    avg: 2,   belowAvg: 1,   unit: 'moments',
+      note: 'TwitchTracker: clips correlate with follower growth at this tier. 3+ moments is healthy.' },
+  },
+  '51-200': {
+    label: '51–200 CCV',
+    chatVelocity:  { excellent: 15,   good: 8,    avg: 4,   belowAvg: 2,   unit: 'msg/min',
+      note: 'At this tier, chat velocity is a real engagement signal. Sub-4 msg/min suggests low interaction despite the audience size.' },
+    deadAir:       { excellent: 15,   good: 25,   avg: 40,  belowAvg: 55,  invert: true, unit: '% quiet mins',
+      note: 'Audiences at this tier expect consistent energy. Over 40% quiet minutes will hurt retention.' },
+    uniqueRatio:   { excellent: 0.45, good: 0.35, avg: 0.25, belowAvg: 0.15, unit: '% unique',
+      note: 'Regular chatters are normal — watch for bot activity if ratio drops below 15%.' },
+    streamLength:  { sweet: [2*3600, 5*3600], min: 60*60, max: 8*3600 },
+    clipDensity:   { excellent: 8,    good: 5,    avg: 3,   belowAvg: 1,   unit: 'moments',
+      note: 'Clip density matters for discovery at this stage. Aim for a moment every 45–60 minutes.' },
+  },
+  '201-1000': {
+    label: '201–1000 CCV',
+    chatVelocity:  { excellent: 30,   good: 15,   avg: 7,   belowAvg: 3,   unit: 'msg/min',
+      note: 'StreamElements: top-quartile channels at this tier average 20+ msg/min. Sub-7 suggests chat isn\'t engaged despite viewer count.' },
+    deadAir:       { excellent: 10,   good: 20,   avg: 35,  belowAvg: 50,  invert: true, unit: '% quiet mins',
+      note: 'At this viewer count, prolonged quiet reads as streamer disengagement. Over 35% is a notable issue.' },
+    uniqueRatio:   { excellent: 0.42, good: 0.32, avg: 0.22, belowAvg: 0.12, unit: '% unique',
+      note: 'Established regulars dominate chat at this tier — that\'s normal. Watch for drops below 12% as a bot signal.' },
+    streamLength:  { sweet: [2*3600, 6*3600], min: 60*60, max: 10*3600 },
+    clipDensity:   { excellent: 10,   good: 7,    avg: 4,   belowAvg: 2,   unit: 'moments',
+      note: 'Social media clips are a primary growth driver here. 7+ moments per stream supports a full content calendar.' },
+  },
+  '1000+': {
+    label: '1000+ CCV',
+    chatVelocity:  { excellent: 80,   good: 40,   avg: 15,  belowAvg: 6,   unit: 'msg/min',
+      note: 'Large streams run at very different scales. Chat velocity here measures engagement rate, not absolute activity.' },
+    deadAir:       { excellent: 8,    good: 15,   avg: 28,  belowAvg: 45,  invert: true, unit: '% quiet mins',
+      note: 'At this size, dead-air is recoverable — but sustained quiet stretches hurt VOD retention metrics.' },
+    uniqueRatio:   { excellent: 0.35, good: 0.25, avg: 0.18, belowAvg: 0.10, unit: '% unique',
+      note: 'Large streams naturally have a lower unique ratio as regulars post frequently. Below 10% warrants investigation.' },
+    streamLength:  { sweet: [3*3600, 8*3600], min: 2*3600, max: 12*3600 },
+    clipDensity:   { excellent: 15,   good: 10,   avg: 6,   belowAvg: 3,   unit: 'moments',
+      note: 'Clip output at this tier feeds both your own channels and community clip creators. 10+ is the benchmark.' },
+  },
+};
+
+// Get the 5-level calibration label for a metric value.
+// benchSpec: { excellent, good, avg, belowAvg, invert? }
+// value: the raw number
+// Returns: { level: 'excellent'|'good'|'average'|'below-average'|'poor', cssClass, causes? }
+function calibrate(value, benchSpec) {
+  const { excellent, good, avg, belowAvg, invert } = benchSpec;
+  // For "lower is better" metrics (dead-air %) we flip the comparison
+  let level;
+  if (!invert) {
+    if (value >= excellent)      level = 'excellent';
+    else if (value >= good)      level = 'good';
+    else if (value >= avg)       level = 'average';
+    else if (value >= belowAvg)  level = 'below-average';
+    else                         level = 'poor';
+  } else {
+    // lower is better
+    if (value <= excellent)      level = 'excellent';
+    else if (value <= good)      level = 'good';
+    else if (value <= avg)       level = 'average';
+    else if (value <= belowAvg)  level = 'below-average';
+    else                         level = 'poor';
+  }
+  const cssMap = { 'excellent': 'ok', 'good': 'ok', 'average': 'dim', 'below-average': 'warn', 'poor': 'bad' };
+  return { level, cssClass: cssMap[level] };
+}
+
+// Causes text for below-average / poor rows per metric key
+const METRIC_CAUSES = {
+  chatVelocity: {
+    'below-average': 'Likely causes: not responding to chat, no direct questions asked, game content has no reaction moments.',
+    'poor': 'Likely causes: streaming to an empty chat, no verbal engagement with viewers, or very niche content with no community yet.',
+  },
+  deadAir: {
+    'below-average': 'Likely causes: long game loading screens without commentary, reading chat silently, or extended AFK periods.',
+    'poor': 'Likely causes: frequent silent stretches, possible mic issues during sections, or extended breaks without screen indicators.',
+  },
+  uniqueRatio: {
+    'below-average': 'Likely causes: 2–3 chatters dominating all messages, possible spam from bot accounts, or a very tight regular group.',
+    'poor': 'Likely causes: bot activity or a single user spamming. Check recent chat for unusual patterns.',
+  },
+  clipDensity: {
+    'below-average': 'Likely causes: gameplay content without reaction moments, no audience interaction beats, flat session energy.',
+    'poor': 'Likely causes: no hype moments, minimal chat spikes throughout. Try planning segment hooks or challenges.',
+  },
+};
+
+// ===============================================
+// Benchmark reference card (tier-aware)
 // ===============================================
 // Static industry reference values grounded in publicly available Twitch data.
 // Sources: Twitch Insights blog (archived), StreamElements State of the Stream
 // reports (2022-2024), TwitchTracker aggregates, and widely-cited streamer
 // guides from Devin Nash / Zack Larson / Gaming Careers.
-//
-// These are *ranges observed across streamers*, not aspirational targets.
-// Shown as a compact "your stream vs typical" table above the feedback list.
 
 function renderBenchmarkCard(meta, comments, clips) {
   const dur = meta.duration;
@@ -2191,8 +2311,135 @@ function renderBenchmarkCard(meta, comments, clips) {
   const peak = Math.max(...bins, 0);
   const peakMeanRatio = mean > 0 ? peak / mean : 0;
 
-  // ---- Reference table rows ----
-  // Each row: [metric label, your value (formatted), status, ranges text]
+  // ---- Read saved CCV tier ----
+  let savedTier = null;
+  try {
+    const creds = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
+    savedTier = creds.ccvTier || null;
+  } catch {}
+
+  const tierData = savedTier ? TIER_BENCHMARKS[savedTier] : null;
+
+  // If no tier selected, show a prompt
+  if (!tierData) {
+    // Still show the table but with flat reference ranges and no calibration labels
+    return renderBenchmarkCardFlat({ dur, cpm, deadPct, uniqueRatio, peakMeanRatio, clips });
+  }
+
+  // ---- Tier-specific table ----
+  // Stream length status (special — range-based, not thresholds)
+  function durCalibrate(s) {
+    const { sweet, min, max } = tierData.streamLength;
+    if (s < min) return { level: 'poor', cssClass: 'bad' };
+    if (s >= sweet[0] && s <= sweet[1]) return { level: 'excellent', cssClass: 'ok' };
+    if (s > sweet[1] && s <= max) return { level: 'good', cssClass: 'ok' };
+    if (s > max) return { level: 'below-average', cssClass: 'warn' };
+    return { level: 'average', cssClass: 'dim' };
+  }
+
+  // Unique ratio — stored as 0–1 in code but benchmark spec is 0–1 too
+  const uniqueRatioPct = uniqueRatio; // keep as decimal to match spec
+
+  const rows = [
+    {
+      key: 'streamLength',
+      label: 'Stream length',
+      value: fmtDurShort(dur),
+      cal: durCalibrate(dur),
+      range: `sweet spot ${fmtDurShort(tierData.streamLength.sweet[0])}–${fmtDurShort(tierData.streamLength.sweet[1])}`,
+      note: `For ${tierData.label}: min ${fmtDurShort(tierData.streamLength.min)} · sweet spot ${fmtDurShort(tierData.streamLength.sweet[0])}–${fmtDurShort(tierData.streamLength.sweet[1])} · marathon up to ${fmtDurShort(tierData.streamLength.max)}`,
+    },
+    {
+      key: 'chatVelocity',
+      label: 'Chat velocity',
+      value: cpm.toFixed(1) + ' msg/min',
+      cal: calibrate(cpm, tierData.chatVelocity),
+      range: `avg ${tierData.chatVelocity.avg}+ · good ${tierData.chatVelocity.good}+ · excellent ${tierData.chatVelocity.excellent}+`,
+      note: tierData.chatVelocity.note,
+    },
+    {
+      key: 'deadAir',
+      label: 'Dead-air minutes',
+      value: deadPct.toFixed(0) + '%',
+      cal: calibrate(deadPct, tierData.deadAir),
+      range: `excellent <${tierData.deadAir.excellent}% · avg <${tierData.deadAir.avg}% · poor >${tierData.deadAir.belowAvg}%`,
+      note: tierData.deadAir.note,
+    },
+    {
+      key: 'uniqueRatio',
+      label: 'Unique / total chatters',
+      value: (uniqueRatioPct * 100).toFixed(0) + '%',
+      cal: calibrate(uniqueRatioPct, tierData.uniqueRatio),
+      range: `excellent ${(tierData.uniqueRatio.excellent*100).toFixed(0)}%+ · avg ${(tierData.uniqueRatio.avg*100).toFixed(0)}%+ · poor <${(tierData.uniqueRatio.belowAvg*100).toFixed(0)}%`,
+      note: tierData.uniqueRatio.note,
+    },
+    {
+      key: 'clipDensity',
+      label: 'Clip-worthy moments',
+      value: clips.length + ' found',
+      cal: calibrate(clips.length, tierData.clipDensity),
+      range: `excellent ${tierData.clipDensity.excellent}+ · good ${tierData.clipDensity.good}+ · poor <${tierData.clipDensity.belowAvg}`,
+      note: tierData.clipDensity.note,
+    },
+  ];
+
+  // Build calibration badge HTML
+  function calBadge(cal) {
+    const colors = {
+      'excellent':     'background:#f0fdf4;color:#15803d;border:1px solid #15803d;',
+      'good':          'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;',
+      'average':       'background:#f4f4f5;color:#71717a;border:1px solid #d4d4d8;',
+      'below-average': 'background:#fffbeb;color:#b45309;border:1px solid #b45309;',
+      'poor':          'background:#fef2f2;color:#b91c1c;border:1px solid #b91c1c;',
+    };
+    const labels = {
+      'excellent': 'Excellent', 'good': 'Good', 'average': 'Average',
+      'below-average': 'Below Average', 'poor': 'Poor',
+    };
+    return `<span style="font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap;${colors[cal.level]}">${labels[cal.level]}</span>`;
+  }
+
+  const rowsHTML = rows.map(r => {
+    const causeKey = r.key === 'streamLength' ? null : r.key;
+    const causes = (causeKey && METRIC_CAUSES[causeKey] && (r.cal.level === 'below-average' || r.cal.level === 'poor'))
+      ? METRIC_CAUSES[causeKey][r.cal.level] || null : null;
+    const causeHTML = causes
+      ? `<tr><td colspan="4" style="padding:0 10px 8px 0;"><div style="font-size:12px;color:var(--ink-2);background:var(--warning-soft);border-left:3px solid var(--warning);padding:6px 10px;border-radius:0 4px 4px 0;line-height:1.5;">${escapeHTML(causes)}</div></td></tr>`
+      : '';
+    return `
+      <tr>
+        <td>${escapeHTML(r.label)}</td>
+        <td style="font-size:12px;color:var(--ink-dim);" title="${escapeHTML(r.note)}">${escapeHTML(r.range)}</td>
+        <td style="text-align:center;">${calBadge(r.cal)}</td>
+        <td><span class="bench-val ${r.cal.cssClass}">${escapeHTML(r.value)}</span></td>
+      </tr>
+      ${causeHTML}
+    `;
+  }).join('');
+
+  return `
+    <div class="bench-card">
+      <div class="bench-card-head">Your stream vs. ${escapeHTML(tierData.label)} benchmarks</div>
+      <table class="bench-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Tier reference</th>
+            <th style="text-align:center;">Level</th>
+            <th style="text-align:right;">Your stream</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+      <div style="margin-top: 8px; font-size: 11px; color: var(--ink-faint); line-height: 1.5;">
+        Benchmarks for <strong>${escapeHTML(tierData.label)}</strong>. Based on StreamElements State of the Stream 2022–2024 and TwitchTracker aggregates. Hover the reference column for context. Change your tier in Advanced Analysis → Advanced Stream Analysis.
+      </div>
+    </div>
+  `;
+}
+
+// Flat (no-tier) fallback — original flat benchmarks, no calibration labels
+function renderBenchmarkCardFlat({ dur, cpm, deadPct, uniqueRatio, peakMeanRatio, clips }) {
   function durStatus(s) {
     if (s < 30 * 60)   return 'warn';
     if (s > 8 * 3600)  return 'warn';
@@ -2217,55 +2464,19 @@ function renderBenchmarkCard(meta, comments, clips) {
     return 'dim';
   }
   function peakStatus(v) {
-    if (v < 2)  return 'warn'; // flat — no spikes
-    if (v > 12) return 'warn'; // one huge spike, flat everywhere else
+    if (v < 2)  return 'warn';
+    if (v > 12) return 'warn';
     if (v >= 3 && v <= 8) return 'ok';
     return 'dim';
   }
 
   const rows = [
-    {
-      label: 'Stream length',
-      value: fmtDurShort(dur),
-      status: durStatus(dur),
-      ranges: '< 30 min · 90 min–4 h sweet spot · 4–8 h marathon',
-      note: 'Twitch discovery algorithms favor streams ≥ 90 min. Under 30 min rarely surfaces in browse.',
-    },
-    {
-      label: 'Chat velocity',
-      value: cpm.toFixed(1) + ' msg/min',
-      status: cpmStatus(cpm),
-      ranges: '< 1 quiet · 1–3 emerging · 3–10 active · 10+ engaged',
-      note: 'Median for sub-500 CCV channels: 2–4 msg/min. Top 10% of small streamers: 8+.',
-    },
-    {
-      label: 'Dead-air minutes',
-      value: deadPct.toFixed(0) + '%',
-      status: deadStatus(deadPct),
-      ranges: '< 15% excellent · 15–25% normal · 25–50% notable · 50%+ problematic',
-      note: 'Minutes with < 2 messages. VOD retention drops sharply through quiet stretches.',
-    },
-    {
-      label: 'Unique / total chatters',
-      value: (uniqueRatio * 100).toFixed(0) + '%',
-      status: uniqueRatioStatus(uniqueRatio),
-      ranges: '< 25% spammy/bot-heavy · 25–45% typical · 45%+ organic',
-      note: 'Low ratio suggests a few users dominating chat or bot activity.',
-    },
-    {
-      label: 'Chat spike ratio',
-      value: peakMeanRatio.toFixed(1) + '× peak/mean',
-      status: peakStatus(peakMeanRatio),
-      ranges: '< 2× flat · 3–8× healthy variation · > 12× one-event stream',
-      note: 'Healthy streams have recurring spikes (moments). A single huge spike with flat elsewhere means one viral moment and little else.',
-    },
-    {
-      label: 'Clip-worthy moments',
-      value: clips.length + ' found',
-      status: clips.length >= 5 ? 'ok' : clips.length >= 2 ? 'dim' : 'warn',
-      ranges: '0–1 sparse · 2–4 moderate · 5+ rich',
-      note: 'Based on chat velocity + hype keyword scoring. Rough proxy — audio peaks included when proxy is active.',
-    },
+    { label: 'Stream length',          value: fmtDurShort(dur),                      status: durStatus(dur),                      ranges: '< 30 min · 90 min–4 h sweet spot · 4–8 h marathon',            note: 'Twitch discovery algorithms favor streams ≥ 90 min.' },
+    { label: 'Chat velocity',           value: cpm.toFixed(1) + ' msg/min',           status: cpmStatus(cpm),                      ranges: '< 1 quiet · 1–3 emerging · 3–10 active · 10+ engaged',         note: 'Median for sub-500 CCV channels: 2–4 msg/min.' },
+    { label: 'Dead-air minutes',        value: deadPct.toFixed(0) + '%',              status: deadStatus(deadPct),                 ranges: '< 15% excellent · 15–25% normal · 25–50% notable · 50%+ bad',  note: 'Minutes with < 2 messages. VOD retention drops through quiet stretches.' },
+    { label: 'Unique / total chatters', value: (uniqueRatio * 100).toFixed(0) + '%', status: uniqueRatioStatus(uniqueRatio),      ranges: '< 25% spammy/bot-heavy · 25–45% typical · 45%+ organic',      note: 'Low ratio suggests a few users dominating chat or bot activity.' },
+    { label: 'Chat spike ratio',        value: peakMeanRatio.toFixed(1) + '× peak',  status: peakStatus(peakMeanRatio),           ranges: '< 2× flat · 3–8× healthy · > 12× one-event stream',            note: 'Healthy streams have recurring spikes (moments).' },
+    { label: 'Clip-worthy moments',     value: clips.length + ' found',               status: clips.length >= 5 ? 'ok' : clips.length >= 2 ? 'dim' : 'warn', ranges: '0–1 sparse · 2–4 moderate · 5+ rich', note: 'Based on chat velocity + hype keyword scoring.' },
   ];
 
   const rowsHTML = rows.map(r => `
@@ -2279,6 +2490,9 @@ function renderBenchmarkCard(meta, comments, clips) {
   return `
     <div class="bench-card">
       <div class="bench-card-head">Your stream vs. typical ranges</div>
+      <div style="margin-bottom:10px;padding:8px 10px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--ink-2);">
+        Select your CCV tier in <strong>Advanced Analysis → Advanced Stream Analysis</strong> to see personalised benchmarks with calibration labels.
+      </div>
       <table class="bench-table">
         <thead>
           <tr>
@@ -2290,7 +2504,7 @@ function renderBenchmarkCard(meta, comments, clips) {
         <tbody>${rowsHTML}</tbody>
       </table>
       <div style="margin-top: 8px; font-size: 11px; color: var(--ink-faint); line-height: 1.5;">
-        Ranges based on StreamElements State of the Stream reports (2022–2024) and TwitchTracker aggregates for sub-1000 CCV channels. Hover a range for context. Not a guarantee — every community is different.
+        Ranges based on StreamElements State of the Stream 2022–2024 and TwitchTracker aggregates. Hover a range for context. Not a guarantee — every community is different.
       </div>
     </div>
   `;
@@ -3066,6 +3280,85 @@ function generateImprovementNotes(meta, comments, clips, audio) {
 }
 
 // ===============================================
+// Recurring issues detection (rule-based)
+// ===============================================
+// Scans all saved improvement notes for issues that appear in >= 50% of sessions.
+// Matches on note.tag + a canonical "issue key" derived from the note text.
+// Returns an array of { issueKey, label, count, total } sorted by frequency desc.
+
+function detectRecurringIssues(history) {
+  if (!history || history.length < 3) return [];
+
+  // Normalise each note to an issue key by matching on distinctive phrases.
+  // This is intentionally coarse — we want "same problem, different wording" to
+  // cluster together rather than produce dozens of spurious unique issues.
+  const ISSUE_PATTERNS = [
+    { key: 'clipping',      label: 'audio clipping',              pattern: /clipping|full.scale|limiter/i },
+    { key: 'echo',          label: 'audio echo / doubling',       pattern: /echo|doubling/i },
+    { key: 'mic-level',     label: 'mic level too low',           pattern: /raise your mic|loudness.*dBFS|mic level/i },
+    { key: 'dead-air-high', label: 'too many dead-air minutes',   pattern: /break up the quiet|quiet stretches|dead.air|quiet minutes/i },
+    { key: 'low-cpm',       label: 'low chat velocity',           pattern: /chat velocity|chat interaction|msg\/min/i },
+    { key: 'low-unique',    label: 'chat dominated by few users', pattern: /dominated by a few|few users|unique chatters/i },
+    { key: 'short-stream',  label: 'stream too short',            pattern: /stream longer|too short|90 minutes/i },
+    { key: 'few-moments',   label: 'not enough clip-worthy moments', pattern: /clip.worthy|moment.*opportunities|more.*moments/i },
+  ];
+
+  const total = history.length;
+  const counts = {};
+
+  history.forEach(record => {
+    const notes = record.notes || [];
+    // Track which keys have already fired for this session to avoid double-counting
+    const seenThisSession = new Set();
+    notes.forEach(note => {
+      const text = (note.text || '').replace(/<[^>]+>/g, ''); // strip HTML tags
+      ISSUE_PATTERNS.forEach(({ key, pattern }) => {
+        if (!seenThisSession.has(key) && pattern.test(text)) {
+          seenThisSession.add(key);
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      });
+    });
+  });
+
+  // Keep only issues that appear in >= 50% of sessions
+  const threshold = 0.5;
+  const recurring = [];
+  ISSUE_PATTERNS.forEach(({ key, label }) => {
+    const count = counts[key] || 0;
+    if (count / total >= threshold) {
+      recurring.push({ key, label, count, total });
+    }
+  });
+
+  // Sort by frequency descending, then alphabetically for stability
+  recurring.sort((a, b) => (b.count / b.total) - (a.count / a.total) || a.label.localeCompare(b.label));
+  return recurring;
+}
+
+function renderRecurringIssues(history) {
+  if (!history || history.length < 3) return '';
+  const issues = detectRecurringIssues(history);
+  if (!issues.length) return '';
+
+  const items = issues.map(({ label, count, total }) => {
+    const pct = Math.round((count / total) * 100);
+    return `<div style="display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--danger);min-width:36px;">${pct}%</span>
+      <span style="font-size:14px;color:var(--ink);">Recurring issue across your last <strong>${count}</strong> of ${total} streams: <strong>${escapeHTML(label)}</strong>.</span>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="background:var(--danger-soft);border:1px solid var(--danger);border-radius:var(--r-md);padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--danger);margin-bottom:10px;">Recurring issues</div>
+      ${items}
+      <div style="font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.5;">Issues appearing in 50%+ of your saved analyses. Address these first — they're the things you keep not fixing.</div>
+    </div>
+  `;
+}
+
+// ===============================================
 // History rendering
 // ===============================================
 function renderHistoryList() {
@@ -3085,7 +3378,10 @@ function renderHistoryList() {
   countEl.textContent = `${history.length} analysis${history.length === 1 ? '' : 'es'} saved.`;
   clearBtn.style.display = '';
 
-  listEl.innerHTML = history.map((r, i) => {
+  // Recurring issues summary (requires 3+ analyses)
+  const recurringHTML = renderRecurringIssues(history);
+
+  listEl.innerHTML = recurringHTML + history.map((r, i) => {
     const date = new Date(r.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     const time = new Date(r.savedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
