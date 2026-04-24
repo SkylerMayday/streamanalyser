@@ -920,183 +920,7 @@
   .log-line.err { color: #fca5a5; }
   .log-line.warn { color: #fcd34d; }
 
-  /* STUDIO SUB-TABS */
-  .studio-tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 2px solid var(--border);
-    margin-bottom: 20px;
-  }
-  .studio-tab-btn {
-    background: transparent;
-    border: none;
-    font-family: var(--sans);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--ink-dim);
-    padding: 10px 20px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: color 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .studio-tab-btn.active {
-    color: var(--ink);
-    font-weight: 600;
-    border-bottom-color: var(--ink);
-  }
-  .studio-tab-btn:hover:not(.active) { color: var(--ink-2); }
-  .studio-tab-panel { display: none; }
-  .studio-tab-panel.active { display: block; }
-
-  /* CLIP TILE GRID */
-  .clip-tile-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  @media (max-width: 900px) { .clip-tile-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 600px) { .clip-tile-grid { grid-template-columns: 1fr 1fr; } }
-
-  .clip-tile {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: left;
-    font-family: inherit;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    position: relative;
-  }
-  .clip-tile:hover {
-    border-color: var(--accent);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.1);
-  }
-  .clip-tile.active {
-    border-color: var(--ink);
-    background: var(--surface-2);
-    box-shadow: 0 0 0 2px var(--ink);
-  }
-  .clip-tile-rank {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .clip-tile-time {
-    font-family: var(--mono);
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--ink);
-    letter-spacing: -0.01em;
-  }
-  .clip-tile-score-bar {
-    height: 3px;
-    background: var(--border);
-    border-radius: 999px;
-    overflow: hidden;
-    margin: 2px 0;
-  }
-  .clip-tile-score-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: var(--accent);
-    transition: width 0.3s;
-  }
-  .clip-tile-score-fill.high  { background: var(--success); }
-  .clip-tile-score-fill.mid   { background: var(--accent); }
-  .clip-tile-score-fill.low   { background: var(--ink-faint); }
-  .clip-tile-meta {
-    font-size: 11px;
-    color: var(--ink-dim);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 4px;
-  }
-  .clip-tile-score-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--accent);
-  }
-  .clip-tile-score-label.high { color: var(--success); }
-  .clip-tile-score-label.low  { color: var(--ink-faint); }
-
-  /* CLIP DETAIL PANEL (single player + info) */
-  .clip-detail {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-lg);
-    overflow: hidden;
-  }
-  .clip-detail-player {
-    background: #000;
-    aspect-ratio: 16/9;
-  }
-  .clip-detail-player iframe { width: 100%; height: 100%; border: none; display: block; }
-  .clip-detail-body { padding: 18px 20px; }
-  .clip-detail-head {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  .clip-detail-timestamp {
-    font-family: var(--mono);
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--ink);
-  }
-  .clip-detail-score {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-    padding: 3px 10px;
-    background: var(--accent-soft);
-    border-radius: 999px;
-  }
-  .clip-detail-score.high { color: var(--success); background: var(--success-soft); }
-  .clip-detail-reasons {
-    font-size: 14px;
-    color: var(--ink-2);
-    line-height: 1.55;
-    margin-bottom: 14px;
-  }
-
-  /* AUDIO WAVEFORM in clip tile / detail */
-  .clip-audio-wave {
-    background: var(--surface-2);
-    border-left: 3px solid var(--warning);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
-    padding: 8px 10px;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .clip-audio-wave svg { display: block; }
-  .clip-audio-wave-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--warning);
-    font-weight: 600;
-    white-space: nowrap;
-  }
+  /* PLATFORM CAPTION BOX (social post text) */
   .caption-box {
     margin-top: 10px;
     background: var(--surface-2);
@@ -1302,7 +1126,68 @@
   }
   .improvement-note strong { color: var(--ink); font-weight: 600; }
 
-  /* CCV TIER SELECTOR */
+  /* STUDIO INNER TABS */
+  .studio-tab-btn.active { color: var(--ink) !important; font-weight: 600 !important; border-bottom-color: var(--ink) !important; }
+
+  /* STUDIO TILE GRID */
+  .studio-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 900px) { .studio-tile-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .studio-tile-grid { grid-template-columns: 1fr; } }
+
+  .studio-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .studio-tile:hover { border-color: var(--accent); box-shadow: 0 4px 12px -4px rgba(0,0,0,0.1); }
+  .studio-tile.active { border-color: var(--accent); background: var(--accent-soft); }
+  .studio-tile-rank {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .studio-tile-ts {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .studio-tile-score-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .studio-tile-score-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+  }
+  .studio-tile-score-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .studio-tile-sources {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+
   .tier-selector {
     display: flex;
     gap: 8px;
@@ -1472,102 +1357,64 @@
         <p>Run an analysis first. Ranked clip moments will appear here.</p>
       </div>
 
-      <div id="studio-content" style="display:none;">
-        <!-- Studio sub-tabs -->
-        <div class="studio-tabs">
-          <button class="studio-tab-btn active" data-studio-tab="chat">
-            💬 Chat-Spike Clips
-            <span id="studio-chat-count" style="font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:1px 7px;font-weight:500;color:var(--ink-dim);"></span>
-          </button>
-          <button class="studio-tab-btn" data-studio-tab="audio" id="studio-audio-tab-btn" style="display:none;">
-            🔊 Audio-Peak Clips
-            <span id="studio-audio-count" style="font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:1px 7px;font-weight:500;color:var(--ink-dim);"></span>
-          </button>
-        </div>
-
-        <!-- Chat clips panel -->
-        <div class="studio-tab-panel active" id="studio-panel-chat">
-          <p id="chat-clips-intro" style="color:var(--ink-dim);font-size:14px;margin-bottom:16px;">—</p>
-          <div class="clip-tile-grid" id="chat-clips-grid"></div>
-          <div class="clip-detail" id="chat-clip-detail" style="display:none;">
-            <div class="clip-detail-player" id="chat-clip-player">
-              <iframe id="chat-clip-iframe" allowfullscreen="true" scrolling="no" src=""></iframe>
-            </div>
-            <div class="clip-detail-body">
-              <div class="clip-detail-head">
-                <span class="clip-detail-timestamp" id="chat-clip-ts">—</span>
-                <span class="clip-detail-score" id="chat-clip-score-badge">—</span>
-                <a id="chat-clip-twitch-link" href="#" target="_blank" style="margin-left:auto;text-decoration:none;">
-                  <button class="ghost small">▶ Open on Twitch</button>
-                </a>
-              </div>
-              <div class="clip-detail-reasons" id="chat-clip-reasons"></div>
-              <div class="clip-chat-sample" id="chat-clip-sample"></div>
-              <!-- Timeline -->
-              <div class="timeline-row" style="margin-top:14px;">
-                <span class="timeline-label" style="font-size:12px;color:var(--ink-dim);">Start</span>
-                <div class="timeline-track" id="chat-timeline-track">
-                  <div class="timeline-fill"></div>
-                  <div class="timeline-handle start" data-handle="start"></div>
-                  <div class="timeline-handle end" data-handle="end"></div>
-                </div>
-                <span class="timeline-value" id="chat-tl-end">—</span>
-              </div>
-              <div class="timeline-row">
-                <span class="timeline-value" id="chat-tl-start">—</span>
-                <div class="timeline-hint" style="font-size:12px;color:var(--ink-dim);">
-                  Drag handles to trim · 60s Twitch cap
-                  <button class="ghost small" id="chat-tl-reload" style="display:none;padding:3px 8px;font-size:9px;">↻ Reload</button>
-                </div>
-                <span class="timeline-value" id="chat-tl-dur">—</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Audio clips panel -->
-        <div class="studio-tab-panel" id="studio-panel-audio">
-          <p id="audio-clips-intro" style="color:var(--ink-dim);font-size:14px;margin-bottom:16px;">—</p>
-          <div class="clip-tile-grid" id="audio-clips-grid"></div>
-          <div class="clip-detail" id="audio-clip-detail" style="display:none;">
-            <div class="clip-detail-player" id="audio-clip-player">
-              <iframe id="audio-clip-iframe" allowfullscreen="true" scrolling="no" src=""></iframe>
-            </div>
-            <div class="clip-detail-body">
-              <div class="clip-detail-head">
-                <span class="clip-detail-timestamp" id="audio-clip-ts">—</span>
-                <span class="clip-detail-score" id="audio-clip-score-badge">—</span>
-                <a id="audio-clip-twitch-link" href="#" target="_blank" style="margin-left:auto;text-decoration:none;">
-                  <button class="ghost small">▶ Open on Twitch</button>
-                </a>
-              </div>
-              <div class="clip-detail-reasons" id="audio-clip-reasons"></div>
-              <div class="clip-audio-wave" id="audio-clip-wave" style="display:none;">
-                <svg id="audio-wave-svg" width="100%" height="40" viewBox="0 0 300 40" preserveAspectRatio="none"></svg>
-                <span class="clip-audio-wave-label">Audio Energy</span>
-              </div>
-              <!-- Timeline -->
-              <div class="timeline-row" style="margin-top:14px;">
-                <span class="timeline-label" style="font-size:12px;color:var(--ink-dim);">Start</span>
-                <div class="timeline-track" id="audio-timeline-track">
-                  <div class="timeline-fill"></div>
-                  <div class="timeline-handle start" data-handle="start"></div>
-                  <div class="timeline-handle end" data-handle="end"></div>
-                </div>
-                <span class="timeline-value" id="audio-tl-end">—</span>
-              </div>
-              <div class="timeline-row">
-                <span class="timeline-value" id="audio-tl-start">—</span>
-                <div class="timeline-hint" style="font-size:12px;color:var(--ink-dim);">
-                  Drag handles to trim · 60s Twitch cap
-                  <button class="ghost small" id="audio-tl-reload" style="display:none;padding:3px 8px;font-size:9px;">↻ Reload</button>
-                </div>
-                <span class="timeline-value" id="audio-tl-dur">—</span>
-              </div>
-            </div>
-          </div>
+      <!-- Studio inner tab bar — hidden until analysis runs -->
+      <div id="studio-tabs-bar" style="display:none;">
+        <div style="display:flex; gap:0; border-bottom: 1px solid var(--border); margin-bottom: 0;">
+          <button class="studio-tab-btn active" data-studio="highscore" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);padding:10px 18px;cursor:pointer;border-bottom:2px solid var(--ink);margin-bottom:-1px;">⭐ High Score Clips</button>
+          <button class="studio-tab-btn" data-studio="chat" style="background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-dim);padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">💬 Chat-Spike Clips</button>
+          <button class="studio-tab-btn" id="studio-tab-audio-btn" data-studio="audio" style="display:none;background:transparent;border:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-dim);padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">🔊 Audio-Peak Clips</button>
         </div>
       </div>
+
+      <!-- Studio inner panels -->
+      <!-- High Score panel -->
+      <div id="studio-panel-highscore" style="display:none; margin-top: 20px;">
+        <div style="margin-bottom: 14px;">
+          <p id="highscore-clips-intro" style="color:var(--ink-dim);font-size:14px;">Moments scored ≥ 4.0 from both chat and audio sources, merged and deduplicated.</p>
+        </div>
+        <!-- Shared player for high score tab -->
+        <div id="studio-hs-player" style="display:none; margin-bottom: 20px;">
+          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;max-width:640px;">
+            <iframe id="studio-hs-iframe" title="High score clip preview" allowfullscreen="true" scrolling="no" src="" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <div id="studio-hs-detail" style="margin-top: 12px;"></div>
+        </div>
+        <div id="highscore-clips-grid" class="studio-tile-grid"></div>
+      </div>
+
+      <!-- Chat-Spike panel -->
+      <div id="studio-panel-chat" style="display:none; margin-top: 20px;">
+        <div style="margin-bottom: 14px;">
+          <p id="chat-clips-intro" style="color:var(--ink-dim);font-size:14px;">—</p>
+        </div>
+        <!-- Shared player for chat tab -->
+        <div id="studio-chat-player" style="display:none; margin-bottom: 20px;">
+          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;max-width:640px;">
+            <iframe id="studio-chat-iframe" title="Chat clip preview" allowfullscreen="true" scrolling="no" src="" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <div id="studio-chat-detail" style="margin-top: 12px;"></div>
+        </div>
+        <div id="chat-clips-list" class="studio-tile-grid"></div>
+      </div>
+
+      <!-- Audio-Peak panel -->
+      <div id="studio-panel-audio" style="display:none; margin-top: 20px;">
+        <div style="margin-bottom: 14px;">
+          <p id="audio-clips-intro" style="color:var(--ink-dim);font-size:14px;">—</p>
+        </div>
+        <!-- Shared player for audio tab -->
+        <div id="studio-audio-player" style="display:none; margin-bottom: 20px;">
+          <div style="background:#000;border-radius:var(--r-md);aspect-ratio:16/9;overflow:hidden;max-width:640px;">
+            <iframe id="studio-audio-iframe" title="Audio clip preview" allowfullscreen="true" scrolling="no" src="" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <div id="studio-audio-detail" style="margin-top: 12px;"></div>
+        </div>
+        <div id="audio-clips-list" class="studio-tile-grid"></div>
+      </div>
+
+      <!-- Legacy section IDs kept as invisible anchors for JS compatibility -->
+      <div id="studio-audio-section" style="display:none;"></div>
+      <div id="studio-chat-section" style="display:none;"></div>
     </div>
 
     <div id="dashboard-empty" class="empty" style="margin-top: 20px;">
@@ -1655,7 +1502,7 @@
           <button class="tier-btn" data-tier="201-1000">201–1000 CCV</button>
           <button class="tier-btn" data-tier="1000+">1000+ CCV</button>
         </div>
-        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);">Saved to your browser. Used in Session 2 when tier-specific benchmarks are added.</p>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--ink-faint);">Saved to your browser. Used to contextualise benchmark metrics against streamers at a similar stage.</p>
       </div>
 
       <div class="card">
@@ -2244,29 +2091,8 @@ function uniqueChatters(comments) {
   return new Set(comments.map(c => c.user)).size;
 }
 // ===============================================
-// Clip scoring — tier-normalised 0–10
+// Clip scoring
 // ===============================================
-// Raw score = velocityScore + excitementScore * 2.5  (unbounded z-score based)
-// Tier ceiling: the "excellent" chat velocity threshold for the user's tier is used
-// to anchor what a perfect 10 looks like. If no tier is set, falls back to a
-// universal ceiling of rawScore = 10 (covers typical sub-200 CCV streams).
-// Final score = clamp(rawScore / tierCeiling * 10, 0, 10), rounded to 1dp.
-
-function getTierScoreCeiling() {
-  try {
-    const creds = JSON.parse(localStorage.getItem('vodDeskCreds') || '{}');
-    const tier = creds.ccvTier;
-    if (tier && TIER_BENCHMARKS[tier]) {
-      // Use the "excellent" chat velocity (msg/min) for this tier as the ceiling signal.
-      // A window hitting excellent velocity + full excitement = 10.
-      // We map: rawScore ceiling ≈ (excellent_cpm / 5) * 6  (empirically calibrated)
-      const exc = TIER_BENCHMARKS[tier].chatVelocity.excellent;
-      return Math.max(4, (exc / 5) * 6);
-    }
-  } catch {}
-  return 10; // universal fallback
-}
-
 const HYPE_KEYWORDS = /\b(pog|poggers|lol|lmao|lmfao|rofl|omg|wtf|holy|insane|clutch|nice|gg|wp|hype|W|cracked|clean|nuts|no way|let'?s go|lets go|goated|goat|sick|sheesh|based|actual|literally|bro|wait what)\b/i;
 const LAUGH_EMOJIS = /[😂🤣😭💀]|KEKW|LULW|OMEGALUL|PepeLaugh|LUL|KEK/g;
 const HYPE_EMOTES = /PogChamp|Pog|POGGERS|WAYTOODANK|PepegaCredit|EZ|EZY|W\s*$|Clap|PogU/g;
@@ -2287,8 +2113,6 @@ function scoreClips(comments, duration, audioMoments) {
   });
   const mean = bins.reduce((a,b) => a+b, 0) / bins.length || 1;
   const sd = Math.sqrt(bins.reduce((a,b) => a + (b-mean)**2, 0) / bins.length) || 1;
-
-  const tierCeiling = getTierScoreCeiling();
 
   for (let start = 0; start + windowSec <= duration; start += hopSec) {
     const end = start + windowSec;
@@ -2314,11 +2138,9 @@ function scoreClips(comments, duration, audioMoments) {
     const uniqueUsers = new Set(winMsgs.map(m => m.user)).size;
     const velocityScore = Math.max(0, z) * 1.0;
     const excitementScore = (laughs * 0.35 + hype * 0.45 + hypeEmotes * 0.4 + uniqueUsers * 0.15) / windowSec;
-    const rawScore = velocityScore + excitementScore * 2.5;
-    // Normalise to 0–10 against tier ceiling
-    const score = Math.min(10, Math.max(0, (rawScore / tierCeiling) * 10));
+    const score = velocityScore + excitementScore * 2.5;
 
-    windows.push({ start, end, score, rawScore, z, laughs, hype, hypeEmotes,
+    windows.push({ start, end, score, z, laughs, hype, hypeEmotes,
       unique: uniqueUsers, msgCount: winMsgs.length,
       sample: winMsgs.slice(0, 12), audioMoments: [], audioBoost: 0 });
   }
@@ -2328,7 +2150,7 @@ function scoreClips(comments, duration, audioMoments) {
   for (const w of windows) {
     if (picked.some(p => !(w.end < p.start - 20 || w.start > p.end + 20))) continue;
     picked.push(w);
-    if (picked.length >= 15) break;
+    if (picked.length >= 12) break;
   }
   picked.sort((a,b) => b.score - a.score);
   return picked;
@@ -2659,273 +2481,257 @@ function generateFeedback(meta, comments, clips, audio) {
 // ===============================================
 // Render clips + captions
 // ===============================================
-// ===============================================
-// Clip rendering — tile grid + single shared detail player
-// ===============================================
-
-// Score colour class (for tiles and badge)
-function scoreClass(s) {
-  if (s >= 7) return 'high';
-  if (s >= 4) return 'mid';
-  return 'low';
-}
-
-// Draw a simple bar-chart waveform SVG from an array of energy values (0–1 normalised)
-function drawWaveSvg(energyValues, color) {
-  const W = 300, H = 40;
-  const n = energyValues.length;
-  if (!n) return '';
-  const bw = W / n;
-  const bars = energyValues.map((v, i) => {
-    const h = Math.max(2, v * H);
-    const x = i * bw;
-    const y = H - h;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw - 0.5).toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" opacity="${0.4 + v * 0.6}" rx="1"/>`;
-  }).join('');
-  return bars;
-}
-
-// Render the tile grid for a clip set. type = 'chat' | 'audio'
-function renderClipTiles(clips, type, vodId, vodDuration) {
-  const gridId = type === 'chat' ? 'chat-clips-grid' : 'audio-clips-grid';
-  const grid = document.getElementById(gridId);
-  if (!grid) return;
-
+function renderClips(clips, listId, vodId, channelName, vodDuration) {
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
   if (!clips.length) {
-    grid.innerHTML = '<div style="padding:20px 0;color:var(--ink-faint);font-size:14px;grid-column:1/-1;">No moments found.</div>';
+    listEl.innerHTML = '<div style="padding:20px 0; color:var(--ink-faint); font-size:14px;">No moments found for this section.</div>';
     return;
   }
+  const parentDomain = window.location.hostname || 'localhost';
 
-  if (!window.__studioClips) window.__studioClips = {};
-  window.__studioClips[type] = { clips, vodId, vodDuration };
+  // Namespace clip state by listId to avoid collisions between the two lists
+  if (!window.__clipState) window.__clipState = new Map();
 
-  grid.innerHTML = clips.map((c, i) => {
-    const sc = c.score;
-    const cls = scoreClass(sc);
-    const pct = (sc / 10 * 100).toFixed(0);
+  listEl.innerHTML = clips.map((c, i) => {
+    const stateKey = listId + '-' + i;
+    const start = Math.floor(c.start);
+    const end = Math.ceil(c.end);
+    window.__clipState.set(stateKey, {
+      start, end,
+      captionsText: '',
+      vodId,
+      channelName,
+      vodDuration
+    });
+    const sampleHTML = c.sample.map(m => `<div><span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML(m.msg).slice(0,120)}</div>`).join('');
+    const clipId = listId + '-' + i;
     return `
-      <button class="clip-tile${i === 0 ? ' active' : ''}" data-clip-type="${type}" data-clip-idx="${i}">
-        <span class="clip-tile-rank">#${i + 1}</span>
-        <span class="clip-tile-time">${fmtDur(c.start)}</span>
-        <div class="clip-tile-score-bar">
-          <div class="clip-tile-score-fill ${cls}" style="width:${pct}%"></div>
+      <div class="clip-item" data-idx="${i}" data-clip-id="${clipId}" data-list-id="${listId}">
+        <div class="clip-head">
+          <span class="clip-rank">№ ${String(i+1).padStart(2,'0')}</span>
+          <div style="flex:1;">
+            <div class="clip-title-row">
+              <span class="clip-timestamp">${fmtDur(c.start)}</span>
+              <span class="clip-duration">${Math.round(c.end - c.start)}s window</span>
+              ${c.audioBoost > 0.5 ? `<span class="clip-source-tag audio" title="This clip rode a measured audio energy spike — the proxy-enabled audio probe boosted its rank">🔊 audio peak${c.audioMoments.length > 1 ? ` ×${c.audioMoments.length}` : ''}</span>` : ''}
+              ${c.z > 1.5 ? `<span class="clip-source-tag chat" title="Chat velocity z-score — how far this window exceeded the stream's baseline message rate">💬 chat spike</span>` : ''}
+              <span class="clip-score">score ${c.score.toFixed(2)}</span>
+            </div>
+            <div class="clip-reasons">${clipReason(c)}</div>
+          </div>
         </div>
-        <div class="clip-tile-meta">
-          <span>${Math.round(c.end - c.start)}s</span>
-          <span class="clip-tile-score-label ${cls}">${sc.toFixed(1)}/10</span>
+        <div class="clip-chat-sample">${sampleHTML || '<em>No sample</em>'}</div>
+
+        <div class="clip-actions">
+          <a href="https://www.twitch.tv/videos/${vodId}?t=${Math.floor(c.start/3600)}h${Math.floor(c.start%3600/60)}m${Math.floor(c.start%60)}s" target="_blank" style="text-decoration:none;">
+            <button class="ghost small" title="Open VOD at this timestamp in Twitch">▶ Open at ${fmtDur(c.start)}</button>
+          </a>
+          <button class="primary" style="padding: 9px 16px;" data-open-editor="${clipId}">Preview ▸</button>
         </div>
-      </button>
+
+        <div class="clip-editor" id="editor-${clipId}">
+          <div class="clip-preview-wrapper" id="preview-${clipId}">
+            <iframe
+              title="VOD preview at ${fmtDur(start)}"
+              allowfullscreen="true"
+              scrolling="no"
+              data-clip-idx="${i}"
+              src="">
+            </iframe>
+          </div>
+
+          <div class="timeline-row" style="margin-top: 12px;">
+            <span class="timeline-label">Start</span>
+            <div class="timeline-track" data-timeline="${clipId}">
+              <div class="timeline-fill"></div>
+              <div class="timeline-handle start" data-handle="start"></div>
+              <div class="timeline-handle end" data-handle="end"></div>
+            </div>
+            <span class="timeline-value" id="end-value-${clipId}">${fmtDur(end)}</span>
+          </div>
+          <div class="timeline-row">
+            <span class="timeline-value" id="start-value-${clipId}">${fmtDur(start)}</span>
+            <div class="timeline-hint">
+              Drag handles to fine-tune · Twitch clips cap at 60s
+              <button class="ghost small" id="reload-preview-${clipId}" style="display:none; margin-left: 10px; padding: 3px 8px; font-size: 9px;">↻ Reload at new start</button>
+            </div>
+            <span class="timeline-value" id="dur-value-${clipId}">${end - start}s</span>
+          </div>
+        </div>
+      </div>
     `;
   }).join('');
 
-  // Wire tile clicks
-  grid.querySelectorAll('.clip-tile').forEach(tile => {
-    tile.addEventListener('click', () => {
-      grid.querySelectorAll('.clip-tile').forEach(t => t.classList.remove('active'));
-      tile.classList.add('active');
-      const idx = +tile.dataset.clipIdx;
-      showClipDetail(type, idx);
+  // Wire editor open/close (scoped to this list)
+  function openEditorById(clipId) {
+    // Close any other open editor in the same list
+    listEl.querySelectorAll('.clip-editor.open').forEach(ed => {
+      const otherId = ed.closest('.clip-item').dataset.clipId;
+      if (otherId !== clipId) {
+        ed.classList.remove('open');
+        const iframe = ed.querySelector('iframe');
+        if (iframe) iframe.src = '';
+        const btn = listEl.querySelector(`button[data-open-editor="${otherId}"]`);
+        if (btn) btn.textContent = 'Preview ▸';
+      }
+    });
+    const editor = document.getElementById('editor-' + clipId);
+    if (!editor) return;
+    editor.classList.add('open');
+    loadClipPreview(clipId);
+    initTimeline(clipId);
+    const btn = listEl.querySelector(`button[data-open-editor="${clipId}"]`);
+    if (btn) btn.textContent = '◾ Close preview';
+  }
+
+  function closeEditorById(clipId) {
+    const editor = document.getElementById('editor-' + clipId);
+    if (!editor) return;
+    editor.classList.remove('open');
+    const iframe = editor.querySelector('iframe');
+    if (iframe) iframe.src = '';
+    const btn = listEl.querySelector(`button[data-open-editor="${clipId}"]`);
+    if (btn) btn.textContent = 'Preview ▸';
+  }
+
+  listEl.querySelectorAll('button[data-open-editor]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const clipId = btn.dataset.openEditor;
+      const editor = document.getElementById('editor-' + clipId);
+      if (editor && editor.classList.contains('open')) {
+        closeEditorById(clipId);
+      } else {
+        openEditorById(clipId);
+      }
     });
   });
 
-  // Auto-show first clip
-  showClipDetail(type, 0);
-}
-
-// Show the detail panel for clip[idx] of given type
-function showClipDetail(type, idx) {
-  const store = window.__studioClips && window.__studioClips[type];
-  if (!store) return;
-  const { clips, vodId, vodDuration } = store;
-  const c = clips[idx];
-  if (!c) return;
-
-  const detailId = type === 'chat' ? 'chat-clip-detail' : 'audio-clip-detail';
-  const detail = document.getElementById(detailId);
-  if (!detail) return;
-  detail.style.display = '';
-
-  const start = Math.floor(c.start);
-  const end = Math.ceil(c.end);
-  const sc = c.score;
-  const cls = scoreClass(sc);
-
-  // Timestamp + score badge
-  document.getElementById(type + '-clip-ts').textContent = fmtDur(c.start);
-  const badge = document.getElementById(type + '-clip-score-badge');
-  badge.textContent = sc.toFixed(1) + ' / 10';
-  badge.className = 'clip-detail-score' + (cls === 'high' ? ' high' : '');
-
-  // Twitch link
-  const link = document.getElementById(type + '-clip-twitch-link');
-  if (link) link.href = `https://www.twitch.tv/videos/${vodId}?t=${Math.floor(start/3600)}h${Math.floor(start%3600/60)}m${Math.floor(start%60)}s`;
-
-  // Reasons
-  document.getElementById(type + '-clip-reasons').innerHTML = clipReason(c);
-
-  // Chat sample or audio wave
-  if (type === 'chat') {
-    const sampleEl = document.getElementById('chat-clip-sample');
-    if (c.sample && c.sample.length) {
-      sampleEl.innerHTML = c.sample.map(m => `<div><span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML(m.msg).slice(0, 120)}</div>`).join('');
-      sampleEl.style.display = '';
-    } else {
-      sampleEl.style.display = 'none';
-    }
-  } else {
-    // Audio wave: if clip has rms data use it, otherwise generate a synthetic placeholder
-    const waveEl = document.getElementById('audio-clip-wave');
-    const waveSvg = document.getElementById('audio-wave-svg');
-    if (waveSvg) {
-      // Use stored energy curve if available, else show flat bar
-      let energyVals;
-      const curve = window.__audioEnergyCurve;
-      if (curve && curve.length) {
-        // Extract values near this clip's window
-        const nearby = curve.filter(p => p.t >= start - 15 && p.t <= end + 15);
-        if (nearby.length >= 2) {
-          const maxRms = Math.max(...nearby.map(p => p.rms), 1e-6);
-          energyVals = nearby.map(p => p.rms / maxRms);
-        }
-      }
-      if (!energyVals || !energyVals.length) {
-        // Synthetic: show score-proportional flat bar with small variation
-        const base = sc / 10;
-        energyVals = Array.from({ length: 20 }, (_, i) =>
-          Math.min(1, base + (Math.sin(i * 1.3) * 0.08)));
-      }
-      waveSvg.innerHTML = drawWaveSvg(energyVals, '#b45309');
-      waveEl.style.display = '';
-    }
+  // Auto-open first editor on render
+  if (clips.length > 0) {
+    const firstClipId = listId + '-0';
+    setTimeout(() => openEditorById(firstClipId), 120);
   }
 
-  // Load iframe
-  const iframeId = type + '-clip-iframe';
-  const iframe = document.getElementById(iframeId);
-  if (iframe) {
-    const parentDomain = window.location.hostname || 'localhost';
-    const hrs = Math.floor(start / 3600), mins = Math.floor(start % 3600 / 60), secs = start % 60;
-    const src = `https://player.twitch.tv/?video=v${vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=false`;
-    if (iframe.src !== src) iframe.src = src;
-  }
-
-  // Init timeline
-  initDetailTimeline(type, start, end, vodDuration, vodId);
 }
 
-// Shared timeline logic for detail panels
-function initDetailTimeline(type, startSec, endSec, vodDuration, vodId) {
-  const trackId = type + '-timeline-track';
-  const track = document.getElementById(trackId);
-  if (!track) return;
+// Load the Twitch player iframe for a clip based on current state.start
+function loadClipPreview(clipId) {
+  const state = window.__clipState.get(clipId);
+  if (!state) return;
+  const parentDomain = window.location.hostname || 'localhost';
+  const t = state.start;
+  const hrs = Math.floor(t/3600);
+  const mins = Math.floor(t%3600/60);
+  const secs = t%60;
+  const src = `https://player.twitch.tv/?video=v${state.vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=false`;
+  const wrapper = document.getElementById('preview-' + clipId);
+  if (!wrapper) return;
+  const iframe = wrapper.querySelector('iframe');
+  if (iframe && iframe.src !== src) iframe.src = src;
+  state.previewedStart = t;
+}
 
-  // Store mutable state on the track element
-  track.__ts = { start: startSec, end: endSec };
-
-  const viewStart = Math.max(0, startSec - 30);
-  const viewEnd = Math.min(vodDuration, endSec + 60);
+// Timeline interaction: draggable handles
+function initTimeline(clipId) {
+  const track = document.querySelector(`[data-timeline="${clipId}"]`);
+  if (!track || track.__initialized) return;
+  track.__initialized = true;
+  const state = window.__clipState.get(clipId);
+  const vodDur = state.vodDuration;
+  // Zoom the timeline to a window around the clip: [clipStart - 30s, clipEnd + 60s]
+  const viewStart = Math.max(0, state.start - 30);
+  const viewEnd = Math.min(vodDur, state.end + 60);
   const viewRange = viewEnd - viewStart;
+  state.viewStart = viewStart;
+  state.viewEnd = viewEnd;
 
   const fill = track.querySelector('.timeline-fill');
-  const hStart = track.querySelector('.timeline-handle.start');
-  const hEnd = track.querySelector('.timeline-handle.end');
+  const handleStart = track.querySelector('.timeline-handle.start');
+  const handleEnd = track.querySelector('.timeline-handle.end');
 
-  function timeToPct(t) { return Math.max(0, Math.min(100, ((t - viewStart) / viewRange) * 100)); }
-  function pctToTime(pct) { return viewStart + (pct / 100) * viewRange; }
+  function timeToPct(t) {
+    return Math.max(0, Math.min(100, ((t - viewStart) / viewRange) * 100));
+  }
+  function pctToTime(pct) {
+    return viewStart + (pct / 100) * viewRange;
+  }
 
   function render() {
-    const s = track.__ts.start, e = track.__ts.end;
-    hStart.style.left = timeToPct(s) + '%';
-    hEnd.style.left = timeToPct(e) + '%';
-    fill.style.left = timeToPct(s) + '%';
-    fill.style.width = (timeToPct(e) - timeToPct(s)) + '%';
-    document.getElementById(type + '-tl-start').textContent = fmtDur(s);
-    document.getElementById(type + '-tl-end').textContent = fmtDur(e);
-    document.getElementById(type + '-tl-dur').textContent = Math.round(e - s) + 's';
+    const sPct = timeToPct(state.start);
+    const ePct = timeToPct(state.end);
+    handleStart.style.left = sPct + '%';
+    handleEnd.style.left = ePct + '%';
+    fill.style.left = sPct + '%';
+    fill.style.width = (ePct - sPct) + '%';
+    document.getElementById('start-value-' + clipId).textContent = fmtDur(state.start);
+    document.getElementById('end-value-' + clipId).textContent = fmtDur(state.end);
+    document.getElementById('dur-value-' + clipId).textContent = Math.round(state.end - state.start) + 's';
+    const reloadBtn = document.getElementById('reload-preview-' + clipId);
+    if (reloadBtn && state.previewedStart !== state.start) {
+      reloadBtn.style.display = '';
+    }
   }
   render();
 
-  // Remove old listeners by cloning
-  const newHStart = hStart.cloneNode(true);
-  const newHEnd = hEnd.cloneNode(true);
-  hStart.parentNode.replaceChild(newHStart, hStart);
-  hEnd.parentNode.replaceChild(newHEnd, hEnd);
+  // Debounced preview reload after drag ends
+  let reloadTimer = null;
+  function scheduleReload() {
+    if (reloadTimer) clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(() => {
+      loadClipPreview(clipId);
+      const reloadBtn = document.getElementById('reload-preview-' + clipId);
+      if (reloadBtn) reloadBtn.style.display = 'none';
+    }, 600);
+  }
 
-  function startDrag(which, ev) {
+  let dragging = null;
+  function startDrag(handleName, ev) {
     ev.preventDefault();
+    dragging = handleName;
     const onMove = (e) => {
       const rect = track.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const pct = ((clientX - rect.left) / rect.width) * 100;
       const t = Math.round(pctToTime(pct));
-      if (which === 'start') {
-        track.__ts.start = Math.max(0, Math.min(t, track.__ts.end - 2));
+      if (dragging === 'start') {
+        state.start = Math.max(0, Math.min(t, state.end - 2));
       } else {
-        track.__ts.end = Math.min(vodDuration, Math.max(t, track.__ts.start + 2), track.__ts.start + 60);
+        // Cap clip duration at 60s (Twitch limit)
+        state.end = Math.min(vodDur, Math.max(t, state.start + 2), state.start + 60);
       }
       render();
     };
     const onUp = () => {
+      dragging = null;
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
-      // Show reload button if start moved
-      const reloadBtn = document.getElementById(type + '-tl-reload');
-      if (reloadBtn) reloadBtn.style.display = '';
+      // Only reload preview when user stops dragging, and only if start moved
+      if (state.start !== state.previewedStart) {
+        scheduleReload();
+      }
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onUp);
   }
+  handleStart.addEventListener('mousedown', (e) => startDrag('start', e));
+  handleStart.addEventListener('touchstart', (e) => startDrag('start', e), { passive: false });
+  handleEnd.addEventListener('mousedown', (e) => startDrag('end', e));
+  handleEnd.addEventListener('touchstart', (e) => startDrag('end', e), { passive: false });
 
-  track.querySelector('.timeline-handle.start').addEventListener('mousedown', e => startDrag('start', e));
-  track.querySelector('.timeline-handle.start').addEventListener('touchstart', e => startDrag('start', e), { passive: false });
-  track.querySelector('.timeline-handle.end').addEventListener('mousedown', e => startDrag('end', e));
-  track.querySelector('.timeline-handle.end').addEventListener('touchstart', e => startDrag('end', e), { passive: false });
-
-  // Reload button
-  const reloadBtn = document.getElementById(type + '-tl-reload');
+  // Manual reload button
+  const reloadBtn = document.getElementById('reload-preview-' + clipId);
   if (reloadBtn) {
-    const newReload = reloadBtn.cloneNode(true);
-    reloadBtn.parentNode.replaceChild(newReload, reloadBtn);
-    newReload.style.display = 'none';
-    newReload.addEventListener('click', () => {
-      const s = track.__ts.start;
-      const iframe = document.getElementById(type + '-clip-iframe');
-      if (iframe) {
-        const parentDomain = window.location.hostname || 'localhost';
-        const hrs = Math.floor(s / 3600), mins = Math.floor(s % 3600 / 60), secs = s % 60;
-        iframe.src = `https://player.twitch.tv/?video=v${vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=false`;
-      }
-      newReload.style.display = 'none';
+    reloadBtn.addEventListener('click', () => {
+      loadClipPreview(clipId);
+      reloadBtn.style.display = 'none';
     });
   }
 }
-
-// Studio sub-tab switching
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.studio-tab-btn');
-  if (!btn) return;
-  const tab = btn.dataset.studioTab;
-  if (!tab) return;
-  document.querySelectorAll('.studio-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.studioTab === tab));
-  document.querySelectorAll('.studio-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'studio-panel-' + tab));
-});
-
-// Legacy renderClips shim — keeps any code that still calls renderClips('audio-clips-list') working
-// Maps old list IDs to the new tile renderer
-function renderClips(clips, listId, vodId, channelName, vodDuration) {
-  if (listId === 'audio-clips-list') {
-    renderClipTiles(clips, 'audio', vodId, vodDuration);
-  } else {
-    renderClipTiles(clips, 'chat', vodId, vodDuration);
-  }
-}
-
-// Load the Twitch player iframe for a clip based on current state.start
-// loadClipPreview and initTimeline superseded by showClipDetail / initDetailTimeline
 
 // Confirm clip: produce the Twitch clip URL and show handoff tiles
 
@@ -3100,9 +2906,6 @@ $('#audio-upload').addEventListener('change', async (ev) => {
 async function runDenseAudioScan(vodId, duration, chatClips) {
   log('Dense audio scan starting (~120 segments)…');
   $('#audio-clips-intro').innerHTML = '<em style="color:var(--ink-faint)">Scanning audio… this runs in the background.</em>';
-  // Show audio tab button early so user knows it's coming
-  const audioTabBtnEarly = $('#studio-audio-tab-btn');
-  if (audioTabBtnEarly) { audioTabBtnEarly.style.display = ''; audioTabBtnEarly.querySelector('span').textContent = '…'; }
 
   try {
     const masterUrl = await AudioProbe.getVODPlaylistURL(vodId);
@@ -3168,9 +2971,6 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
       return;
     }
 
-    // Store energy curve globally so waveform renderer can use it
-    window.__audioEnergyCurve = energyCurve;
-
     // Add metadata for render (audio clips have no chat sample)
     audioClips.forEach(c => {
       c.sample = [];
@@ -3178,25 +2978,24 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
       c.z = 0; c.audioBoost = c.score;
       c.audioMoments = [];
       c.isAudioClip = true;
-      // Normalise audio score to 0–10 (raw score is a z-score, cap at 5σ = 10)
-      c.score = Math.min(10, Math.max(0, (c.score / 5) * 10));
     });
-
-    // Show audio tab
-    const audioTabBtn = $('#studio-audio-tab-btn');
-    if (audioTabBtn) audioTabBtn.style.display = '';
-    const audioCountEl = $('#studio-audio-count');
-    if (audioCountEl) audioCountEl.textContent = audioClips.length;
 
     // Render
     const currentVodId = vodId;
-    const firstChatState = window.__studioClips && window.__studioClips['chat'];
-    const ch = firstChatState ? '' : '';
-    renderClips(audioClips, 'audio-clips-list', currentVodId, ch, duration);
+    const firstChatState = window.__clipState && [...window.__clipState.values()][0];
+    const ch = firstChatState ? firstChatState.channelName : '';
+    renderStudioClips(audioClips, 'audio-clips-list', 'audio', currentVodId, ch, duration);
+    // Show audio tab button
+    const audioTabBtn = $('#studio-tab-audio-btn');
+    if (audioTabBtn) audioTabBtn.style.display = '';
     $('#audio-clips-intro').innerHTML =
       `<strong>${audioClips.length}</strong> moments with high audio energy — loud reactions, music drops, sudden silence breaks. ` +
       `Deduplicated against chat clips (${audioCandidates.length - audioClips.length} removed as overlapping).`;
     log(`Dense audio scan complete: ${audioClips.length} audio clips found.`, 'ok');
+
+    // Rebuild high score tab now that audio clips are available
+    const chatClipsForHS = window.__studioClips && window.__studioClips['chat'] ? window.__studioClips['chat'] : chatClips;
+    buildAndRenderHighScoreClips(chatClipsForHS, audioClips, currentVodId, ch, duration);
   } catch (e) {
     $('#audio-clips-intro').innerHTML = `<span style="color:var(--danger)">Audio scan failed: ${escapeHTML(e.message)}</span>`;
     log('Dense audio scan error: ' + e.message, 'err');
@@ -3204,8 +3003,165 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
 }
 
 // ===============================================
-// Inner tab switching (Advanced Analysis)
+// Studio inner tab switching
 // ===============================================
+function switchStudioTab(name) {
+  document.querySelectorAll('.studio-tab-btn').forEach(b => {
+    const active = b.dataset.studio === name;
+    b.style.color = active ? 'var(--ink)' : 'var(--ink-dim)';
+    b.style.fontWeight = active ? '600' : '500';
+    b.style.borderBottomColor = active ? 'var(--ink)' : 'transparent';
+  });
+  ['highscore', 'chat', 'audio'].forEach(panel => {
+    const el = document.getElementById('studio-panel-' + panel);
+    if (el) el.style.display = panel === name ? '' : 'none';
+  });
+}
+window.switchStudioTab = switchStudioTab;
+
+// Wire studio tab buttons
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.studio-tab-btn');
+  if (btn && btn.dataset.studio) switchStudioTab(btn.dataset.studio);
+});
+
+// ===============================================
+// Studio tile renderer (replaces renderClips in Studio context)
+// ===============================================
+// Renders compact tile grid + shared per-tab player above it.
+// tabKey: 'highscore' | 'chat' | 'audio'
+function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuration) {
+  if (!window.__studioClips) window.__studioClips = {};
+  window.__studioClips[tabKey] = clips;
+
+  const gridEl = document.getElementById(gridId);
+  if (!gridEl) return;
+
+  if (!clips.length) {
+    gridEl.innerHTML = '<div style="padding:20px 0; color:var(--ink-faint); font-size:14px; grid-column: 1/-1;">No moments found for this section.</div>';
+    return;
+  }
+
+  const playerEl = document.getElementById('studio-' + tabKey.replace('highscore','hs') + '-player');
+  const iframeEl = document.getElementById('studio-' + tabKey.replace('highscore','hs') + '-iframe');
+  const detailEl = document.getElementById('studio-' + tabKey.replace('highscore','hs') + '-detail');
+
+  // Score ceiling for normalised bar (use max of this set)
+  const maxScore = Math.max(...clips.map(c => c.score), 1);
+
+  gridEl.innerHTML = clips.map((c, i) => {
+    const scorePct = Math.min(100, (c.score / maxScore) * 100);
+    const scoreDisplay = Math.round((c.score / maxScore) * 10) + '/10';
+    const hasChatBadge = c.z > 1.5 || (!c.isAudioClip && c.score > 0);
+    const hasAudioBadge = c.audioBoost > 0.5 || c.isAudioClip;
+    return `
+      <button class="studio-tile${i === 0 ? ' active' : ''}" data-tile-idx="${i}" data-tab-key="${tabKey}">
+        <div class="studio-tile-rank">№ ${String(i+1).padStart(2,'0')}</div>
+        <div class="studio-tile-ts">${fmtDur(c.start)}</div>
+        <div class="studio-tile-score-bar"><div class="studio-tile-score-fill" style="width:${scorePct.toFixed(1)}%"></div></div>
+        <div class="studio-tile-score-label">${scoreDisplay}</div>
+        <div class="studio-tile-sources">
+          ${hasChatBadge ? '<span class="clip-source-tag chat">💬 chat</span>' : ''}
+          ${hasAudioBadge ? '<span class="clip-source-tag audio">🔊 audio</span>' : ''}
+        </div>
+      </button>
+    `;
+  }).join('');
+
+  // Load player for first clip immediately (autoplay)
+  function loadTilePlayer(clip, idx, autoplay) {
+    if (!playerEl || !iframeEl) return;
+    playerEl.style.display = '';
+    const parentDomain = window.location.hostname || 'localhost';
+    const t = Math.floor(clip.start);
+    const hrs = Math.floor(t/3600);
+    const mins = Math.floor(t%3600/60);
+    const secs = t%60;
+    const src = `https://player.twitch.tv/?video=v${vodId}&parent=${parentDomain}&time=${hrs}h${mins}m${secs}s&autoplay=${autoplay ? 'true' : 'false'}`;
+    iframeEl.src = src;
+    // Detail panel
+    if (detailEl) {
+      const sampleHTML = (clip.sample || []).slice(0,5).map(m =>
+        `<span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML((m.msg||'').slice(0,80))}`
+      ).join('<br>');
+      detailEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-family:var(--mono);font-size:15px;font-weight:700;">${fmtDur(clip.start)}</span>
+          <span style="font-size:13px;color:var(--ink-dim);">${Math.round(clip.end - clip.start)}s window</span>
+          ${clip.audioBoost > 0.5 || clip.isAudioClip ? '<span class="clip-source-tag audio">🔊 audio peak</span>' : ''}
+          ${clip.z > 1.5 ? '<span class="clip-source-tag chat">💬 chat spike</span>' : ''}
+          <a href="https://www.twitch.tv/videos/${vodId}?t=${Math.floor(clip.start/3600)}h${Math.floor(clip.start%3600/60)}m${Math.floor(clip.start%60)}s" target="_blank" style="margin-left:auto;text-decoration:none;"><button class="ghost small">▶ Open on Twitch</button></a>
+        </div>
+        <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px;">${clipReason(clip)}</div>
+        ${sampleHTML ? `<div class="clip-chat-sample" style="margin:0;">${sampleHTML}</div>` : ''}
+      `;
+    }
+    // Highlight active tile
+    gridEl.querySelectorAll('.studio-tile').forEach((t, ti) => t.classList.toggle('active', ti === idx));
+  }
+
+  // Auto-load first clip (autoplay only on very first render of this tab)
+  loadTilePlayer(clips[0], 0, tabKey !== 'chat'); // autoplay on highscore + audio, not chat (avoids annoying autoplay on analysis complete)
+
+  gridEl.querySelectorAll('.studio-tile').forEach((tile, idx) => {
+    tile.addEventListener('click', () => {
+      loadTilePlayer(clips[idx], idx, false);
+    });
+  });
+}
+
+// ===============================================
+// Build and render High Score Clips tab
+// ===============================================
+// Merges chat clips (score >= 4 raw or normalised >= 4/10) with audio clips
+// (score >= 4 z or normalised), deduplicates within 20s, stores result.
+function buildAndRenderHighScoreClips(chatClips, audioClips, vodId, channelName, vodDuration) {
+  if (!window.__studioClips) window.__studioClips = {};
+
+  const chatMax = Math.max(...(chatClips || []).map(c => c.score), 1);
+  const audioMax = Math.max(...(audioClips || []).map(c => c.score), 1);
+
+  // Normalise to 0-10
+  const chatNorm = (chatClips || []).map(c => ({ ...c, normScore: (c.score / chatMax) * 10, _src: 'chat' }));
+  const audioNorm = (audioClips || []).map(c => ({ ...c, normScore: (c.score / audioMax) * 10, _src: 'audio' }));
+
+  // Filter >= 4.0 normalised
+  const candidates = [...chatNorm.filter(c => c.normScore >= 4.0), ...audioNorm.filter(c => c.normScore >= 4.0)];
+
+  // Sort by normalised score desc
+  candidates.sort((a, b) => b.normScore - a.normScore);
+
+  // Deduplicate within 20s
+  const merged = [];
+  for (const c of candidates) {
+    if (merged.some(m => Math.abs(m.start - c.start) < 20)) continue;
+    merged.push(c);
+    if (merged.length >= 15) break;
+  }
+
+  // Store
+  window.__studioClips['highscore'] = merged;
+
+  const intro = $('#highscore-clips-intro');
+  if (intro) {
+    if (merged.length) {
+      const chatCount = merged.filter(c => c._src === 'chat').length;
+      const audioCount = merged.filter(c => c._src === 'audio').length;
+      intro.innerHTML = `<strong>${merged.length}</strong> moments scoring ≥ 4/10 — ${chatCount} from chat${audioCount ? `, ${audioCount} from audio` : ''}. Best clips for social media.`;
+    } else {
+      intro.innerHTML = 'No moments scored ≥ 4/10 yet. Try enabling the audio proxy for more candidates.';
+    }
+  }
+
+  if (merged.length > 0) {
+    renderStudioClips(merged, 'highscore-clips-grid', 'highscore', vodId, channelName, vodDuration);
+  } else {
+    const g = $('#highscore-clips-grid');
+    if (g) g.innerHTML = '<div style="padding:20px 0;color:var(--ink-faint);font-size:14px;grid-column:1/-1;">No clips met the ≥ 4/10 threshold yet.</div>';
+  }
+}
+
+
 function switchInnerTab(name) {
   document.querySelectorAll('.inner-tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.inner === name);
@@ -3526,12 +3482,15 @@ async function runAnalysis(vodId) {
   $('#feedback-section').style.display = 'none';
   $('#audio-results-card').style.display = 'none';
   $('#studio-empty').style.display = '';
-  $('#studio-content').style.display = 'none';
-  // Reset audio tab for new analysis
-  const audioTabBtn = $('#studio-audio-tab-btn');
-  if (audioTabBtn) audioTabBtn.style.display = 'none';
-  window.__audioEnergyCurve = null;
-  window.__studioClips = {};
+  $('#studio-tabs-bar').style.display = 'none';
+  // Hide all studio inner panels
+  ['highscore','chat','audio'].forEach(k => {
+    const p = document.getElementById('studio-panel-' + k);
+    if (p) p.style.display = 'none';
+  });
+  // Hide audio tab button until dense scan completes
+  const audioTabBtn2 = $('#studio-tab-audio-btn');
+  if (audioTabBtn2) audioTabBtn2.style.display = 'none';
   switchSubTab('analysis');
 
   // Reset caption audio source for the new VOD
@@ -3668,11 +3627,10 @@ async function runAnalysis(vodId) {
       }
     }
 
-    // Studio tab — chat clips always shown immediately
+    // Studio tab — show inner tabs + chat panel immediately
     $('#studio-empty').style.display = 'none';
-    $('#studio-content').style.display = '';
-    const chatCountEl = $('#studio-chat-count');
-    if (chatCountEl) chatCountEl.textContent = clips.length;
+    $('#studio-tabs-bar').style.display = '';
+    switchStudioTab('chat'); // default to chat tab until highscore is built
     $('#chat-clips-intro').innerHTML = `<strong>${clips.length}</strong> moments ranked by chat velocity + hype keyword/emote density.`;
 
     // Render feedback
@@ -3702,7 +3660,13 @@ async function runAnalysis(vodId) {
       AudioProbe.renderAudio(audio);
     }
 
-    renderClips(clips, 'chat-clips-list', id, channelName, duration);
+    renderStudioClips(clips, 'chat-clips-list', 'chat', id, channelName, duration);
+    // Build high score tab immediately from chat clips (audio will be merged in later)
+    buildAndRenderHighScoreClips(clips, [], id, channelName, duration);
+    // Switch to high score tab if it has content, otherwise stay on chat
+    if ((window.__studioClips && window.__studioClips['highscore'] || []).length > 0) {
+      switchStudioTab('highscore');
+    }
     setProgress(100);
     $('#analyzing-title').textContent = 'Analysis complete';
 
