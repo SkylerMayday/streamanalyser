@@ -1840,6 +1840,15 @@ function switchSubTab(name) {
     const el = document.getElementById('sub-panel-' + panel);
     if (el) el.style.display = panel === name ? '' : 'none';
   });
+
+  // Pause studio iframes when leaving Studio sub-tab
+  if (name === 'analysis') {
+    ['hs', 'chat', 'audio'].forEach(suffix => {
+      const iframe = document.getElementById('studio-' + suffix + '-iframe');
+      if (iframe) iframe.src = '';
+    });
+    window.__activeStudioTab = null;
+  }
 }
 window.switchSubTab = switchSubTab;
 
@@ -3403,6 +3412,16 @@ window.switchStudioTab = switchStudioTab;
 document.addEventListener('click', e => {
   const btn = e.target.closest('.studio-tab-btn');
   if (btn && btn.dataset.studio) switchStudioTab(btn.dataset.studio);
+});
+
+// Restore iframe playback when browser exits fullscreen.
+// Twitch's embedded player blanks itself on fullscreen exit — re-triggering
+// the loader with autoplay=true restores it without requiring a user click.
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && window.__activeStudioTab) {
+    const loader = window.__studioTabLoader[window.__activeStudioTab];
+    if (loader) loader(true);
+  }
 });
 
 // ===============================================
@@ -5219,6 +5238,12 @@ async function runAnalysis(vodId) {
     if (isAIUnlocked()) {
       runAIFeedback({ duration }, comments, clips, audio, feedback)
         .catch(e => log('AI feedback background error: ' + e.message, 'warn'));
+    }
+
+    // Step 9: AI stream score card — background, non-blocking.
+    if (isAIUnlocked()) {
+      runAIMetrics({ duration }, comments, clips, audio)
+        .catch(e => log('AI metrics background error: ' + e.message, 'warn'));
     }
 
     log('Analysis complete.', 'ok');
