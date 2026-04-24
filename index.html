@@ -3039,6 +3039,8 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
 
     if (energyCurve.length < 5) throw new Error('Too few segments decoded');
     energyCurve.sort((a, b) => a.t - b.t);
+    // Stash for use in audio clip detail sparklines
+    window.__energyCurve = energyCurve;
 
     // Score audio clips
     const audioCandidates = scoreAudioClips(energyCurve, duration);
@@ -3085,19 +3087,26 @@ async function runDenseAudioScan(vodId, duration, chatClips) {
 // ===============================================
 // Studio inner tab switching
 // ===============================================
+// Tracks which studio tab is currently shown — used to guard renders that
+// fire asynchronously (e.g. buildAndRenderHighScoreClips after dense scan).
+window.__activeStudioTab = null;
+// Per-tab loader: set by renderStudioClips so switchStudioTab can trigger it.
+window.__studioTabLoader = {};
+
 function switchStudioTab(name) {
-  // Blank out the iframe of the currently-visible tab to stop playback
-  // and prevent its active-tile highlight from persisting visually.
+  // Stop playback and clear highlights on ALL tabs unconditionally — the
+  // previous approach of only clearing the visible panel missed cases where
+  // async re-renders (dense scan, high score rebuild) ran while a different
+  // tab was showing, leaving stale .active state on the hidden tab's tiles.
   ['highscore', 'chat', 'audio'].forEach(k => {
-    const panel = document.getElementById('studio-panel-' + k);
-    if (!panel || panel.style.display === 'none') return;
     const tabSuffix = k === 'highscore' ? 'hs' : k;
     const iframe = document.getElementById('studio-' + tabSuffix + '-iframe');
     if (iframe) iframe.src = '';
-    // Clear active state on all tiles in outgoing tab
-    const grid = panel.querySelector('.studio-tile-grid');
-    if (grid) grid.querySelectorAll('.studio-tile').forEach(t => t.classList.remove('active'));
+    const panel = document.getElementById('studio-panel-' + k);
+    if (panel) panel.querySelectorAll('.studio-tile').forEach(t => t.classList.remove('active'));
   });
+
+  window.__activeStudioTab = name;
 
   document.querySelectorAll('.studio-tab-btn').forEach(b => {
     const active = b.dataset.studio === name;
@@ -3109,6 +3118,11 @@ function switchStudioTab(name) {
     const el = document.getElementById('studio-panel-' + panel);
     if (el) el.style.display = panel === name ? '' : 'none';
   });
+
+  // Trigger the first-clip loader for the incoming tab (autoplay=true).
+  // This is set by renderStudioClips when the tab's clips are rendered.
+  const loader = window.__studioTabLoader[name];
+  if (loader) loader(true);
 }
 window.switchStudioTab = switchStudioTab;
 
@@ -3119,12 +3133,86 @@ document.addEventListener('click', e => {
 });
 
 // ===============================================
+// ===============================================
+// Audio energy sparkline for audio-peak clip detail
+// ===============================================
+// Draws an inline SVG line graph of the energyCurve centred on the clip window.
+// Shows ±90s of context around the clip, with a shaded band marking the clip itself.
+function drawAudioSparkline(clip, energyCurve) {
+  if (!energyCurve || energyCurve.length < 3) return '';
+
+  const PAD_SEC = 90; // context either side of the clip
+  const viewStart = Math.max(0, clip.start - PAD_SEC);
+  const viewEnd   = clip.end + PAD_SEC;
+
+  // Points within the view window
+  const pts = energyCurve.filter(p => p.t >= viewStart && p.t <= viewEnd);
+  if (pts.length < 2) return '';
+
+  // Normalise RMS to [0,1] within this window so quiet streams still show shape
+  const maxRms = Math.max(...pts.map(p => p.rms), 1e-9);
+  const norm = pts.map(p => ({ t: p.t, v: p.rms / maxRms }));
+
+  const W = 500, H = 72, padX = 4, padY = 6;
+  const tRange = viewEnd - viewStart || 1;
+
+  function tx(t) { return padX + ((t - viewStart) / tRange) * (W - padX * 2); }
+  function ty(v) { return padY + (1 - v) * (H - padY * 2); }
+
+  // Polyline points
+  const polyline = norm.map(p => `${tx(p.t).toFixed(1)},${ty(p.v).toFixed(1)}`).join(' ');
+
+  // Shaded region for the clip window
+  const clipX1 = tx(clip.start).toFixed(1);
+  const clipX2 = tx(clip.end).toFixed(1);
+  const clipW  = (tx(clip.end) - tx(clip.start)).toFixed(1);
+
+  // Time labels
+  function fmtT(sec) {
+    const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = Math.floor(sec%60);
+    return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  return `
+    <div style="margin: 10px 0 4px;">
+      <div style="font-size:11px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Audio energy</div>
+      <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+           style="width:100%;height:auto;display:block;background:var(--surface-2);border-radius:var(--r-sm);border:1px solid var(--border);">
+        <!-- Clip window highlight -->
+        <rect x="${clipX1}" y="${padY}" width="${clipW}" height="${H - padY * 2}"
+              fill="var(--warning)" opacity="0.18" rx="2"/>
+        <!-- Baseline -->
+        <line x1="${padX}" y1="${H - padY}" x2="${W - padX}" y2="${H - padY}"
+              stroke="var(--border-strong)" stroke-width="1"/>
+        <!-- Energy line -->
+        <polyline points="${polyline}"
+                  fill="none" stroke="var(--warning)" stroke-width="2"
+                  stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- Clip start/end tick marks -->
+        <line x1="${clipX1}" y1="${padY}" x2="${clipX1}" y2="${H - padY}"
+              stroke="var(--warning)" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.7"/>
+        <line x1="${clipX2}" y1="${padY}" x2="${clipX2}" y2="${H - padY}"
+              stroke="var(--warning)" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.7"/>
+        <!-- Time labels -->
+        <text x="${padX + 2}" y="${H - 1}" font-size="9" fill="var(--ink-faint)" font-family="monospace">${fmtT(viewStart)}</text>
+        <text x="${(W / 2).toFixed(0)}" y="${H - 1}" font-size="9" fill="var(--warning)" font-family="monospace"
+              text-anchor="middle">${fmtT(clip.start)}–${fmtT(clip.end)}</text>
+        <text x="${W - padX - 2}" y="${H - 1}" font-size="9" fill="var(--ink-faint)" font-family="monospace"
+              text-anchor="end">${fmtT(viewEnd)}</text>
+      </svg>
+    </div>
+  `;
+}
+
 // Studio tile renderer (replaces renderClips in Studio context)
 // ===============================================
 // Renders compact tile grid + shared per-tab player above it.
 // tabKey: 'highscore' | 'chat' | 'audio'
 function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuration) {
   if (!window.__studioClips) window.__studioClips = {};
+  // Stash vodId on each clip so switchStudioTab can build the iframe src without
+  // needing closure access to vodId.
+  clips.forEach(c => { c.__vodId = vodId; });
   window.__studioClips[tabKey] = clips;
 
   const gridEl = document.getElementById(gridId);
@@ -3180,6 +3268,10 @@ function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuratio
       const sampleHTML = (clip.sample || []).slice(0,5).map(m =>
         `<span class="user">${escapeHTML(m.user)}:</span> ${escapeHTML((m.msg||'').slice(0,80))}`
       ).join('<br>');
+      // Audio tab: show energy sparkline instead of chat sample
+      const contentHTML = tabKey === 'audio'
+        ? drawAudioSparkline(clip, window.__energyCurve || [])
+        : (sampleHTML ? `<div class="clip-chat-sample" style="margin:0;">${sampleHTML}</div>` : '');
       detailEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
           <span style="font-family:var(--mono);font-size:15px;font-weight:700;">${fmtDur(clip.start)}</span>
@@ -3189,19 +3281,31 @@ function renderStudioClips(clips, gridId, tabKey, vodId, channelName, vodDuratio
           <a href="https://www.twitch.tv/videos/${vodId}?t=${Math.floor(clip.start/3600)}h${Math.floor(clip.start%3600/60)}m${Math.floor(clip.start%60)}s" target="_blank" style="margin-left:auto;text-decoration:none;"><button class="ghost small">▶ Open on Twitch</button></a>
         </div>
         <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px;">${clipReason(clip)}</div>
-        ${sampleHTML ? `<div class="clip-chat-sample" style="margin:0;">${sampleHTML}</div>` : ''}
+        ${contentHTML}
       `;
     }
     // Highlight active tile — scoped strictly to this grid
     gridEl.querySelectorAll('.studio-tile').forEach((t, ti) => t.classList.toggle('active', ti === idx));
   }
 
-  // First render: load player WITHOUT autoplay (user must click to play)
-  loadTilePlayer(clips[0], 0, false);
+  // Register a loader for this tab so switchStudioTab can trigger it on entry.
+  // The loader loads clip[0] (or re-uses existing idx) into the player.
+  window.__studioTabLoader[tabKey] = function(autoplay) {
+    loadTilePlayer(clips[0], 0, autoplay);
+  };
+
+  // If this tab is currently active, load the first clip now (autoplay).
+  // If it's a background render (e.g. high score rebuilding while user is on
+  // chat tab), do NOT touch player or highlights — switchStudioTab will trigger
+  // the loader when the user navigates here.
+  if (window.__activeStudioTab === tabKey) {
+    loadTilePlayer(clips[0], 0, true);
+  }
 
   gridEl.querySelectorAll('.studio-tile').forEach((tile, idx) => {
     tile.addEventListener('click', () => {
-      loadTilePlayer(clips[idx], idx, true); // autoplay on explicit tile click
+      if (window.__activeStudioTab !== tabKey) return;
+      loadTilePlayer(clips[idx], idx, true);
     });
   });
 }
@@ -3619,6 +3723,8 @@ async function runAnalysis(vodId) {
   $('#audio-results-card').style.display = 'none';
   $('#studio-empty').style.display = '';
   $('#studio-tabs-bar').style.display = 'none';
+  window.__activeStudioTab = null;
+  window.__studioTabLoader = {};
   // Hide all studio inner panels
   ['highscore','chat','audio'].forEach(k => {
     const p = document.getElementById('studio-panel-' + k);
